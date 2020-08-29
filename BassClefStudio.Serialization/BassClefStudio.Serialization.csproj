@@ -3,7 +3,8 @@
   <PropertyGroup>
     <TargetFramework>netstandard1.4</TargetFramework>
     <Authors>BassClefStudio</Authors>
-    <Description>Supports dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization, using DI with Autofac to build object trees.</Description>
+    <Description>Supports dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization, using DI with Autofac to build data models.</Description>
+    <RepositoryUrl>https://github.com/bassclefstudio/.NET-Serialization.git</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
