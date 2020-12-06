@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace BassClefStudio.Serialization.Graphs
@@ -7,11 +9,13 @@ namespace BassClefStudio.Serialization.Graphs
     /// <summary>
     /// A link referring to the object contained in a <see cref="Node"/>.
     /// </summary>
+    [JsonObject(Title = "Link")]
     public struct NodeLink
     {
         /// <summary>
         /// The <see cref="int"/> ID of the <see cref="Node"/>.
         /// </summary>
+        [JsonProperty]
         public int Id { get; set; }
 
         /// <summary>
