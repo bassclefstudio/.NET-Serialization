@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.4</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>BassClefStudio</Authors>
-    <Description>Supports dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization, using DI with Autofac to build data models.</Description>
+    <Description>Supports dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization.</Description>
     <RepositoryUrl>https://github.com/bassclefstudio/.NET-Serialization.git</RepositoryUrl>
-    <Version>1.1.1</Version>
+    <Version>2.0.0</Version>
     <PackageProjectUrl>https://github.com/bassclefstudio/.NET-Serialization</PackageProjectUrl>
   </PropertyGroup>
 
