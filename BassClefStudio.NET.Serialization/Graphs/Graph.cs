@@ -23,14 +23,28 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <summary>
         /// A collection of known <see cref="Assembly"/> references (all types in the assembly have the potential to be serialized).
         /// </summary>
-        public Assembly[] KnownAssemblies { get; }
+        public List<Assembly> KnownAssemblies { get; }
 
         /// <summary>
         /// A collection of known <see cref="Type"/> references (all types have the potential to be serialized).
         /// </summary>
-        public Type[] KnownTypes { get; }
+        public List<Type> KnownTypes { get; }
+
+        /// <summary>
+        /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
+        /// </summary>
+        public static Type[] DefaultTrustedTypes { get; } = new Type[]
+        {
+            typeof(List<>)
+        };
 
         private int Index = 0;
+        private Graph()
+        {
+            Nodes = new List<Node>();
+            KnownAssemblies = new List<Assembly>();
+            KnownTypes = new List<Type>(DefaultTrustedTypes);
+        }
 
         /// <summary>
         /// Creates a new empty <see cref="Graph"/>.
@@ -38,9 +52,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         public Graph(params Assembly[] knownAssemblies)
         {
-            Nodes = new List<Node>();
-            KnownAssemblies = knownAssemblies;
-            KnownTypes = new Type[0];
+            KnownAssemblies.AddRange(knownAssemblies);
         }
 
         /// <summary>
@@ -49,9 +61,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
         public Graph(params Type[] knownTypes)
         {
-            Nodes = new List<Node>();
-            KnownAssemblies = new Assembly[0];
-            KnownTypes = knownTypes;
+            KnownTypes.AddRange(knownTypes);
         }
 
         /// <summary>
@@ -59,11 +69,10 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// </summary>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        public Graph(Assembly[] knownAssemblies, Type[] knownTypes)
+        public Graph(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
         {
-            Nodes = new List<Node>();
-            KnownAssemblies = knownAssemblies;
-            KnownTypes = knownTypes;
+            KnownAssemblies.AddRange(knownAssemblies);
+            KnownTypes.AddRange(knownTypes);
         }
 
         #region BuildNode
