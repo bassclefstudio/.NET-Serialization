@@ -51,7 +51,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// Creates a new empty <see cref="Graph"/>.
         /// </summary>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
-        public Graph(params Assembly[] knownAssemblies)
+        public Graph(params Assembly[] knownAssemblies) : this()
         {
             KnownAssemblies.AddRange(knownAssemblies);
         }
@@ -60,7 +60,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// Creates a new empty <see cref="Graph"/>.
         /// </summary>
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        public Graph(params Type[] knownTypes)
+        public Graph(params Type[] knownTypes) : this()
         {
             KnownTypes.AddRange(knownTypes);
         }
@@ -70,7 +70,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// </summary>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        public Graph(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
+        public Graph(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes) : this()
         {
             KnownAssemblies.AddRange(knownAssemblies);
             KnownTypes.AddRange(knownTypes);
