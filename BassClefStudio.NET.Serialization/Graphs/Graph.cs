@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -143,7 +144,10 @@ namespace BassClefStudio.NET.Serialization.Graphs
             var type = GetTrustedType(o);
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                properties.Add(prop.Name, prop.GetValue(o));
+                if (prop.GetIndexParameters().Length == 0)
+                {
+                    properties.Add(prop.Name, prop.GetValue(o));
+                }
             }
             return properties;
         }
@@ -198,7 +202,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
                         nodeBuilders.Add(node.MyLink, node);
                     }
                     else
-                    {
+                    { 
                         throw new GraphException($"Currently cannot create an instance of an object without a parameterless constructor. Type: {nodeType.FullName}.");
                     }
                 }
