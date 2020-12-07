@@ -1,2 +1,2 @@
 # .NET-Serialization
-A .NET Standard library supporting dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization. It uses DI with Autofac to create and read data models.
+A new serialization engine that provides serialization and deserialization services for complex graphs of objects, preserving references and allowing for polymorphism of trusted types, while using JSON as the output format. Works on .NET Standard 2.0.

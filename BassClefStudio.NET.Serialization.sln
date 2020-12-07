@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30406.217
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BassClefStudio.NET.Serialization", "BassClefStudio.NET.Serialization\BassClefStudio.NET.Serialization.csproj", "{4E958AEA-A7B6-4E62-9E03-A5FB005D6220}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BassClefStudio.NET.Serialization.Tests", "BassClefStudio.NET.Serialization.Tests\BassClefStudio.NET.Serialization.Tests.csproj", "{A8B1DE78-3B53-47B4-98A1-A5794906E61B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E958AEA-A7B6-4E62-9E03-A5FB005D6220}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E958AEA-A7B6-4E62-9E03-A5FB005D6220}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E958AEA-A7B6-4E62-9E03-A5FB005D6220}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E958AEA-A7B6-4E62-9E03-A5FB005D6220}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8B1DE78-3B53-47B4-98A1-A5794906E61B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8B1DE78-3B53-47B4-98A1-A5794906E61B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8B1DE78-3B53-47B4-98A1-A5794906E61B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8B1DE78-3B53-47B4-98A1-A5794906E61B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6A395A82-7F41-4A01-B996-AB1E4813B271}
+	EndGlobalSection
+EndGlobal
