@@ -3,18 +3,18 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Authors>BassClefStudio</Authors>
-    <Description>Supports dynamic serialization to and from XML, JSON, and other data structures without having to build often-complex data models just for serialization.</Description>
+    <Description>A new serialization engine that provides serialization and deserialization services for complex graphs of objects, preserving references and allowing for polymorphism of trusted types, while using JSON as the output format.</Description>
     <RepositoryUrl>https://github.com/bassclefstudio/.NET-Serialization.git</RepositoryUrl>
     <Version>2.0.0</Version>
     <PackageProjectUrl>https://github.com/bassclefstudio/.NET-Serialization</PackageProjectUrl>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>C:\Users\deckl\OneDrive\Decklan Cloud\Development\Base Libraries\BassClefStudio.Serialization\BassClefStudio.Serialization\BassClefStudio.Serialization.xml</DocumentationFile>
+    <PackageId>BassClefStudio.NET.Serialization</PackageId>
+    <Product>BassClefStudio.NET.Serialization</Product>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BassClefStudio.NET.Core" Version="1.4.0" />
+    <PackageReference Include="JsonKnownTypes" Version="0.4.2" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
 

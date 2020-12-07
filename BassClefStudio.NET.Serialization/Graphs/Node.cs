@@ -1,15 +1,17 @@
-﻿using Newtonsoft.Json;
+﻿using JsonKnownTypes;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
 
-namespace BassClefStudio.Serialization.Graphs
+namespace BassClefStudio.NET.Serialization.Graphs
 {
     /// <summary>
     /// Represents an <see cref="object"/> in a data graph.
     /// </summary>
-    [JsonObject(Title = "Node")]
+    [JsonConverter(typeof(JsonKnownTypesConverter<Node>))]
+    [JsonKnownThisType("node")]
     public class Node
     {
         /// <summary>
@@ -46,24 +48,6 @@ namespace BassClefStudio.Serialization.Graphs
             MyLink = myLink;
             BasedOn = basedOn;
             Properties = new Dictionary<string, object>();
-        }
-    }
-
-    public class NodePropertyConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
         }
     }
 }

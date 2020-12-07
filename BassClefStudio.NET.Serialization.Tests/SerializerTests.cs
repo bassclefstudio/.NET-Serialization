@@ -1,8 +1,10 @@
-using BassClefStudio.Serialization.Graphs;
+using BassClefStudio.NET.Serialization.Graphs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
+using System.Reflection;
 
-namespace BassClefStudio.Serialization.Tests
+namespace BassClefStudio.NET.Serialization.Tests
 {
     [TestClass]
     public class SerializerTests
@@ -35,7 +37,7 @@ namespace BassClefStudio.Serialization.Tests
         [TestMethod]
         public void TestUntrustedIn()
         {
-            string json = $"[{{\"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
+            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
             var serializer = new SerializationService(typeof(Base));
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
@@ -44,14 +46,34 @@ namespace BassClefStudio.Serialization.Tests
         [TestMethod]
         public void TestUntrustedInConst()
         {
-            string json = $"[{{\"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
+            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
             var serializer = new SerializationService(typeof(Base));
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
+
+        [TestMethod]
+        public void TestCollection()
+        {
+            Base a = new Base();
+            Base b = new Base();
+            Base c = new Base();
+            Base d = new Base();
+            ListDerived e = new ListDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
+
+            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(List<>) });
+            string json = serializer.Serialize(e);
+            Console.WriteLine(json);
+            Base newE = serializer.Deserialize<Base>(json);
+            Assert.IsInstanceOfType(newE, typeof(ListDerived));
+            var listE = (ListDerived)newE;
+            Assert.IsNotNull(listE.Parents);
+            Assert.AreEqual(4, listE.Parents.Count);
+            Assert.AreEqual(listE.Child, listE.Parents[0]);
+        }
     }
 
-    public class Base : ISerializable
+    public class Base
     {
         public Base Child { get; set; }
     }
@@ -67,5 +89,10 @@ namespace BassClefStudio.Serialization.Tests
         {
             throw new Exception("BadDerived class constructor should never be called.");
         }
+    }
+
+    public class ListDerived : Base
+    {
+        public List<Base> Parents { get; set; }
     }
 }

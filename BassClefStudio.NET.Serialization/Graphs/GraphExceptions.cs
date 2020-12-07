@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace BassClefStudio.Serialization.Graphs
+namespace BassClefStudio.NET.Serialization.Graphs
 {
     /// <summary>
     /// An <see cref="Exception"/> thrown when an <see cref="object"/> in a <see cref="Graph"/> is of an unexpected or untrusted type.

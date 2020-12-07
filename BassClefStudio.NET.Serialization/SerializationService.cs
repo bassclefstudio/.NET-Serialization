@@ -1,11 +1,11 @@
-﻿using BassClefStudio.Serialization.Graphs;
+﻿using BassClefStudio.NET.Serialization.Graphs;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 
-namespace BassClefStudio.Serialization
+namespace BassClefStudio.NET.Serialization
 {
     /// <summary>
     /// A wrapper around <see cref="Graphs.Graph"/> that provides methods for serializing and deserializing <see cref="Graphs.Graph"/> data.
@@ -49,11 +49,12 @@ namespace BassClefStudio.Serialization
         /// Builds a <see cref="Graphs.Graph"/> for the desired <see cref="object"/> (and its property graph) and serializes it to a JSON string.
         /// </summary>
         /// <param name="objectGraph">The parent <see cref="object"/> to serialize.</param>
-        public string Serialize(object objectGraph)
+        /// <param name="formatting">A <see cref="Formatting"/> enum indicating how the output should be styled.</param>
+        public string Serialize(object objectGraph, Formatting formatting = Formatting.None)
         {
             Graph.Nodes.Clear();
             Graph.BuildNodes(objectGraph);
-            return JsonConvert.SerializeObject(Graph.Nodes);
+            return JsonConvert.SerializeObject(Graph.Nodes, formatting);
         }
 
         /// <summary>

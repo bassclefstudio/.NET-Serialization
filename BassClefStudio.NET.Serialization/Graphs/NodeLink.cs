@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
 
-namespace BassClefStudio.Serialization.Graphs
+namespace BassClefStudio.NET.Serialization.Graphs
 {
     /// <summary>
     /// A link referring to the object contained in a <see cref="Node"/>.
