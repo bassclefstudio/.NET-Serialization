@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -23,47 +24,56 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <summary>
         /// A collection of known <see cref="Assembly"/> references (all types in the assembly have the potential to be serialized).
         /// </summary>
-        public Assembly[] KnownAssemblies { get; }
+        public List<Assembly> KnownAssemblies { get; }
 
         /// <summary>
         /// A collection of known <see cref="Type"/> references (all types have the potential to be serialized).
         /// </summary>
-        public Type[] KnownTypes { get; }
+        public List<Type> KnownTypes { get; }
+
+        /// <summary>
+        /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
+        /// </summary>
+        public static Type[] DefaultTrustedTypes { get; } = new Type[]
+        {
+            typeof(List<>)
+        };
 
         private int Index = 0;
-
-        /// <summary>
-        /// Creates a new empty <see cref="Graph"/>.
-        /// </summary>
-        /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
-        public Graph(params Assembly[] knownAssemblies)
+        private Graph()
         {
             Nodes = new List<Node>();
-            KnownAssemblies = knownAssemblies;
-            KnownTypes = new Type[0];
-        }
-
-        /// <summary>
-        /// Creates a new empty <see cref="Graph"/>.
-        /// </summary>
-        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        public Graph(params Type[] knownTypes)
-        {
-            Nodes = new List<Node>();
-            KnownAssemblies = new Assembly[0];
-            KnownTypes = knownTypes;
+            KnownAssemblies = new List<Assembly>();
+            KnownTypes = new List<Type>(DefaultTrustedTypes);
         }
 
         /// <summary>
         /// Creates a new empty <see cref="Graph"/>.
         /// </summary>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
-        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        public Graph(Assembly[] knownAssemblies, Type[] knownTypes)
+        public Graph(params Assembly[] knownAssemblies) : this()
         {
-            Nodes = new List<Node>();
-            KnownAssemblies = knownAssemblies;
-            KnownTypes = knownTypes;
+            KnownAssemblies.AddRange(knownAssemblies);
+        }
+
+        /// <summary>
+        /// Creates a new empty <see cref="Graph"/>.
+        /// </summary>
+        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
+        public Graph(params Type[] knownTypes) : this()
+        {
+            KnownTypes.AddRange(knownTypes);
+        }
+
+        /// <summary>
+        /// Creates a new empty <see cref="Graph"/>.
+        /// </summary>
+        /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
+        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
+        public Graph(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes) : this()
+        {
+            KnownAssemblies.AddRange(knownAssemblies);
+            KnownTypes.AddRange(knownTypes);
         }
 
         #region BuildNode
@@ -134,7 +144,10 @@ namespace BassClefStudio.NET.Serialization.Graphs
             var type = GetTrustedType(o);
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                properties.Add(prop.Name, prop.GetValue(o));
+                if (prop.GetIndexParameters().Length == 0)
+                {
+                    properties.Add(prop.Name, prop.GetValue(o));
+                }
             }
             return properties;
         }
@@ -189,7 +202,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
                         nodeBuilders.Add(node.MyLink, node);
                     }
                     else
-                    {
+                    { 
                         throw new GraphException($"Currently cannot create an instance of an object without a parameterless constructor. Type: {nodeType.FullName}.");
                     }
                 }
