@@ -30,7 +30,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             Derived d = new Derived();
 
-            var serializer = new SerializationService(typeof(Base));
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             Assert.ThrowsException<GraphTypeException>(() => serializer.Serialize(d));
         }
 
@@ -39,7 +39,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
-            var serializer = new SerializationService(typeof(Base));
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
 
@@ -48,7 +48,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
-            var serializer = new SerializationService(typeof(Base));
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
 
@@ -61,7 +61,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             ListDerived e = new ListDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
-            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(List<>) });
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);

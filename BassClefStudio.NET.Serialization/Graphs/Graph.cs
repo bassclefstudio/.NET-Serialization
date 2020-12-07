@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -36,7 +37,8 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// </summary>
         public static Type[] DefaultTrustedTypes { get; } = new Type[]
         {
-            typeof(List<>)
+            typeof(List<>),
+            typeof(ObservableCollection<>)
         };
 
         private int Index = 0;
@@ -175,36 +177,13 @@ namespace BassClefStudio.NET.Serialization.Graphs
             foreach (var node in Nodes)
             {
                 var nodeType = GetTrustedType(node.TypeName);
-                var nodeConsts = nodeType.GetConstructors();
-                if (node is CollectionNode collectionNode)
+                if (node is CollectionNode)
                 {
-                    //// Collection constructor
-                    ConstructorInfo parameterless = nodeConsts.FirstOrDefault(c => !c.GetParameters().Any());
-                    if (parameterless != null)
-                    {
-                        var myObject = parameterless.Invoke(new object[0]);
-                        node.BasedOn = myObject;
-                        nodeBuilders.Add(node.MyLink, node);
-                    }
-                    else
-                    {
-                        throw new GraphException($"Currently cannot create an instance of an object without a parameterless constructor. Type: {nodeType.FullName}.");
-                    }
+                    node.BasedOn = FormatterServices.GetUninitializedObject(nodeType);
                 }
                 else
                 {
-                    //// Object constructor
-                    ConstructorInfo parameterless = nodeConsts.FirstOrDefault(c => !c.GetParameters().Any());
-                    if (parameterless != null)
-                    {
-                        var myObject = parameterless.Invoke(new object[0]);
-                        node.BasedOn = myObject;
-                        nodeBuilders.Add(node.MyLink, node);
-                    }
-                    else
-                    { 
-                        throw new GraphException($"Currently cannot create an instance of an object without a parameterless constructor. Type: {nodeType.FullName}.");
-                    }
+                    node.BasedOn = FormatterServices.GetUninitializedObject(nodeType);
                 }
             }
             //// Now we have a Dictionary with Node objects (and their constructed .NET objects), we can set all properties on the objects.
