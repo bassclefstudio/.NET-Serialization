@@ -2,6 +2,7 @@ using BassClefStudio.NET.Serialization.Graphs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Reflection;
 
 namespace BassClefStudio.NET.Serialization.Tests
@@ -39,7 +40,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
-            var serializer = new SerializationService(typeof(Base));
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
 
@@ -61,7 +62,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             ListDerived e = new ListDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
-            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(List<>) });
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -70,6 +71,47 @@ namespace BassClefStudio.NET.Serialization.Tests
             Assert.IsNotNull(listE.Parents);
             Assert.AreEqual(4, listE.Parents.Count);
             Assert.AreEqual(listE.Child, listE.Parents[0]);
+        }
+
+        [TestMethod]
+        public void TestNoConstructor()
+        {
+            Base a = new Base();
+            DerivedNoConst b = new DerivedNoConst(a, "Fred");
+            a.Child = b;
+
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            string json = serializer.Serialize(a);
+            Console.WriteLine(json);
+            Base newA = serializer.Deserialize<Base>(json);
+            Assert.AreEqual(newA.Child.Child, newA);
+            Assert.IsInstanceOfType(newA.Child, typeof(Derived));
+            Assert.AreEqual(((Derived)newA.Child).Name, "Fred");
+        }
+
+        [TestMethod]
+        public void ExplicitValueSerialize()
+        {
+            Vector2 vector = new Vector2(10, 40);
+            var serializer = new SerializationService(GraphBehaviour.IncludeFields | GraphBehaviour.SetFields, typeof(Vector2));
+            string json = serializer.Serialize(vector);
+            Console.WriteLine(json);
+            Vector2 newVector = serializer.Deserialize<Vector2>(json);
+            Assert.AreEqual(vector, newVector);
+        }
+
+        [TestMethod]
+        public void CustomSerializer()
+        {
+            GuidDerived a = new GuidDerived() { Child = null, Id = Guid.NewGuid() };
+            Base b = new Base() { Child = a };
+            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            serializer.AddCustomSerializer(new GuidSerializer());
+            string json = serializer.Serialize(b);
+            Console.WriteLine(json);
+            Base newB = serializer.Deserialize<Base>(json);
+            Assert.IsInstanceOfType(newB.Child, typeof(GuidDerived));
+            Assert.AreEqual(a.Id, ((GuidDerived)newB.Child).Id);
         }
     }
 
@@ -83,6 +125,20 @@ namespace BassClefStudio.NET.Serialization.Tests
         public string Name { get; set; }
     }
 
+    public class GuidDerived : Base
+    {
+        public Guid Id { get; set; }
+    }
+
+    public class DerivedNoConst : Derived
+    {
+        public DerivedNoConst(Base child, string name)
+        {
+            Child = child;
+            Name = name;
+        }
+    }
+
     public class BadDerived : Base
     {
         public BadDerived()
@@ -94,5 +150,20 @@ namespace BassClefStudio.NET.Serialization.Tests
     public class ListDerived : Base
     {
         public List<Base> Parents { get; set; }
+    }
+
+    public class GuidSerializer : ICustomSerializer
+    {
+        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(Guid));
+        
+        public object Deserialize(string value)
+        {
+            return Guid.Parse(value);
+        }
+
+        public string Serialize(object o)
+        {
+            return ((Guid)o).ToString("N");
+        }
     }
 }

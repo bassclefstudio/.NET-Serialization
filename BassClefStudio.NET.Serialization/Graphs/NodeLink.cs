@@ -35,5 +35,11 @@ namespace BassClefStudio.NET.Serialization.Graphs
         {
             return new NodeLink(id);
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return Id.ToString();
+        }
     }
 }
