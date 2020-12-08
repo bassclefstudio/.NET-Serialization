@@ -17,7 +17,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         public List<NodeLink> Children { get; }
 
         /// <summary>
-        /// Creates a new <see cref="Node"/>.
+        /// Creates a new <see cref="CollectionNode"/>.
         /// </summary>
         /// <param name="myLink">The <see cref="NodeLink"/> that can be used for referring to this <see cref="Node"/> instance.</param>
         /// <param name="basedOn">The <see cref="object"/> that this <see cref="Node"/> represents.</param>

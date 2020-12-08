@@ -23,14 +23,19 @@ namespace BassClefStudio.NET.Serialization.Graphs
         public List<Node> Nodes { get; }
 
         /// <summary>
-        /// A collection of known <see cref="Assembly"/> references (all types in the assembly have the potential to be serialized).
+        /// A <see cref="TypeGroup"/> of all trusted <see cref="Type"/>s for serialization.
         /// </summary>
-        public List<Assembly> KnownAssemblies { get; }
+        public TypeGroup TrustedTypes { get; }
 
         /// <summary>
-        /// A collection of known <see cref="Type"/> references (all types have the potential to be serialized).
+        /// A collection of <see cref="GraphBehaviourInfo"/> instances indicating any special behaviours this <see cref="Graph"/> might need for certain types of objects.
         /// </summary>
-        public List<Type> KnownTypes { get; }
+        public List<GraphBehaviourInfo> Behaviours { get; }
+
+        /// <summary>
+        /// A collection of <see cref="ICustomSerializer"/>s that will be used to serialize/deserialize given value types.
+        /// </summary>
+        public List<ICustomSerializer> CustomSerializers { get; }
 
         /// <summary>
         /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
@@ -45,8 +50,10 @@ namespace BassClefStudio.NET.Serialization.Graphs
         private Graph()
         {
             Nodes = new List<Node>();
-            KnownAssemblies = new List<Assembly>();
-            KnownTypes = new List<Type>(DefaultTrustedTypes);
+            Behaviours = new List<GraphBehaviourInfo>();
+            CustomSerializers = new List<ICustomSerializer>();
+            TrustedTypes = new TypeGroup();
+            TrustedTypes.KnownTypes.AddRange(DefaultTrustedTypes);
         }
 
         /// <summary>
@@ -55,7 +62,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         public Graph(params Assembly[] knownAssemblies) : this()
         {
-            KnownAssemblies.AddRange(knownAssemblies);
+            TrustedTypes.KnownAssemblies.AddRange(knownAssemblies);
         }
 
         /// <summary>
@@ -64,7 +71,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
         public Graph(params Type[] knownTypes) : this()
         {
-            KnownTypes.AddRange(knownTypes);
+            TrustedTypes.KnownTypes.AddRange(knownTypes);
         }
 
         /// <summary>
@@ -74,8 +81,8 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
         public Graph(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes) : this()
         {
-            KnownAssemblies.AddRange(knownAssemblies);
-            KnownTypes.AddRange(knownTypes);
+            TrustedTypes.KnownAssemblies.AddRange(knownAssemblies);
+            TrustedTypes.KnownTypes.AddRange(knownTypes);
         }
 
         #region BuildNode
@@ -90,37 +97,52 @@ namespace BassClefStudio.NET.Serialization.Graphs
             {
                 //// Collection serialization
                 var myNode = CreateCollectionNode(collection);
-                myNode.TypeName = GetTrustedType(o).AssemblyQualifiedName;
+                myNode.TypeName = TrustedTypes.GetMember(o).AssemblyQualifiedName;
                 myNode.Children.AddRange(collection.Select(i => BuildNodes(i)));
                 return myNode.MyLink;
             }
             else
             {
                 //// Object serialization
-                var myNode = CreateNode(o);
-                myNode.TypeName = GetTrustedType(o).AssemblyQualifiedName;
-                var myProps = GetProperties(o);
-                IDictionary<string, object> propertyRefs = myNode.Properties;
-                foreach (var p in myProps)
+                Type nodeType = TrustedTypes.GetMember(o);
+
+                if (CustomSerializers.ContainsType(nodeType))
                 {
-                    if (IsRefType(p.Value))
+                    //// With custom serializer
+                    var serializer = CustomSerializers.GetForType(nodeType);
+                    var myNode = CreateCustomNode(o);
+                    myNode.TypeName = nodeType.AssemblyQualifiedName;
+                    myNode.ValueString = serializer.Serialize(o);
+                    return myNode.MyLink;
+                }
+                else
+                {
+                    //// Default node with reference handling and polymorphism.
+                    var myNode = CreateNode(o);
+                    myNode.TypeName = nodeType.AssemblyQualifiedName;
+                    var myProps = GetProperties(o);
+                    IDictionary<string, object> propertyRefs = myNode.Properties;
+                    foreach (var p in myProps)
                     {
-                        var myRef = Nodes.FirstOrDefault(n => n.BasedOn == p.Value);
-                        if (myRef != null)
+                        if (IsRefType(p.Value))
                         {
-                            propertyRefs.Add(p.Key, myRef.MyLink);
+                            var myRef = Nodes.FirstOrDefault(n => n.BasedOn == p.Value);
+                            if (myRef != null)
+                            {
+                                propertyRefs.Add(p.Key, myRef.MyLink);
+                            }
+                            else
+                            {
+                                propertyRefs.Add(p.Key, BuildNodes(p.Value));
+                            }
                         }
                         else
                         {
-                            propertyRefs.Add(p.Key, BuildNodes(p.Value));
+                            propertyRefs.Add(p.Key, p.Value);
                         }
                     }
-                    else
-                    {
-                        propertyRefs.Add(p.Key, p.Value);
-                    }
+                    return myNode.MyLink;
                 }
-                return myNode.MyLink;
             }
         }
 
@@ -140,25 +162,59 @@ namespace BassClefStudio.NET.Serialization.Graphs
             return myNode;
         }
 
+        private CustomValueNode CreateCustomNode(object o)
+        {
+            CustomValueNode myNode = new CustomValueNode(Index, o);
+            Nodes.Add(myNode);
+            Index++;
+            return myNode;
+        }
+
         private IDictionary<string, object> GetProperties(object o)
         {
             Dictionary<string, object> properties = new Dictionary<string, object>();
-            var type = GetTrustedType(o);
+            var type = TrustedTypes.GetMember(o);
+            var bs = Behaviours.GetBehaviours(type);
+
+            if(bs.HasFlag(GraphBehaviour.IncludeFields))
+            {
+                foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
+                {
+                    try
+                    {
+                        properties.Add(f.Name, f.GetValue(o));
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new GraphException($"Failed to get field value {type.FullName}.{f.Name}.", ex);
+                    }
+                }
+            }
+
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                if (prop.GetIndexParameters().Length == 0)
+                Func<PropertyInfo, bool> shouldAdd;
+                if (bs.HasFlag(GraphBehaviour.ReadOnly))
                 {
-                    properties.Add(prop.Name, prop.GetValue(o));
+                    shouldAdd = p => p.CanRead && p.GetIndexParameters().Length == 0;
+                }
+                else
+                {
+                    shouldAdd = p => p.CanRead && p.CanWrite && p.GetIndexParameters().Length == 0;
+                }
+                if (shouldAdd(prop))
+                {
+                    try
+                    {
+                        properties.Add(prop.Name, prop.GetValue(o));
+                    }
+                    catch(Exception ex)
+                    {
+                        throw new GraphException($"Failed to get property value {type.FullName}.{prop.Name}.", ex);
+                    }
                 }
             }
             return properties;
-        }
-
-        private bool IsRefType(object o)
-        {
-            return o != null
-                && !(o is string)
-                && o.GetType().IsClass;
         }
 
         #endregion
@@ -170,34 +226,99 @@ namespace BassClefStudio.NET.Serialization.Graphs
         public object BuildObject()
         {
             Dictionary<NodeLink, Node> nodeBuilders = new Dictionary<NodeLink, Node>();
-            if(!Nodes.Any())
+            Dictionary<NodeLink, IDictionary<string, object>> remainingProperties = new Dictionary<NodeLink, IDictionary<string, object>>();
+            if (!Nodes.Any())
             {
                 throw new ArgumentException("No Nodes exist to create an object model from.");
             }
             foreach (var node in Nodes)
             {
-                var nodeType = GetTrustedType(node.TypeName);
-                if (node is CollectionNode)
+                var nodeType = TrustedTypes.GetMember(node.TypeName);
+                if (node is CustomValueNode customNode)
                 {
-                    node.BasedOn = FormatterServices.GetUninitializedObject(nodeType);
+                    var serializer = CustomSerializers.GetForType(nodeType);
+                    customNode.BasedOn = serializer.Deserialize(customNode.ValueString);
                 }
                 else
                 {
-                    node.BasedOn = FormatterServices.GetUninitializedObject(nodeType);
+                    try
+                    {
+                        var myConstructors = nodeType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                        bool isConstructed = false;
+                        if (!(node is CollectionNode) && Behaviours.GetBehaviours(nodeType).HasFlag(GraphBehaviour.ParameterConstructor))
+                        {
+                            var availableProps = node.Properties.Where(p => IsValueType(p.Value)).ToArray();
+                            foreach (var c in myConstructors.OrderByDescending(c => c.GetParameters().Length))
+                            {
+                                var ps = c.GetParameters();
+                                if (ps.All(p => availableProps.Any(prop =>
+                                    p.ParameterType.IsAssignableFrom(prop.GetType())
+                                    && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase))))
+                                {
+                                    var parameters = ps.Select(p => availableProps.FirstOrDefault(prop =>
+                                        p.ParameterType.IsAssignableFrom(prop.GetType())
+                                        && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase)));
+                                    remainingProperties.Add(node.MyLink, node.Properties.Except(parameters).ToDictionary());
+                                    node.BasedOn = c.Invoke(parameters.Select(prop => prop.Value).ToArray());
+                                    isConstructed = true;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var emptyConstructor = myConstructors.FirstOrDefault(c => !c.GetParameters().Any());
+                            if (emptyConstructor != null)
+                            {
+                                node.BasedOn = emptyConstructor.Invoke(new object[0]);
+                                remainingProperties.Add(node.MyLink, node.Properties);
+                                isConstructed = true;
+                            }
+                        }
+
+                        if (!isConstructed)
+                        {
+                            node.BasedOn = FormatterServices.GetUninitializedObject(nodeType);
+                            remainingProperties.Add(node.MyLink, node.Properties);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new GraphException($"Failed to create instance of object {nodeType.FullName} [{node.MyLink}].", ex);
+                    }
+                }
+
+                if (node.BasedOn == null)
+                {
+                    throw new GraphException($"Attempted to construct object of type {nodeType.FullName} [{node.MyLink}], but constructor method returned null.");
+                }
+                else
+                {
+                    nodeBuilders.Add(node.MyLink, node);
                 }
             }
             //// Now we have a Dictionary with Node objects (and their constructed .NET objects), we can set all properties on the objects.
             foreach (var node in nodeBuilders.Values)
             {
-                var type = GetTrustedType(node.BasedOn);
-                if (node is CollectionNode collectionNode)
+                var type = TrustedTypes.GetMember(node.BasedOn);
+                if(node is CustomValueNode customNode)
+                {
+                    //// Custom values are already deserialized as they were handled by ICustomSerializers.
+                }
+                else if (node is CollectionNode collectionNode)
                 {
                     //// Collection initialization
                     if (collectionNode.BasedOn is IList list)
                     {
-                        foreach (var item in collectionNode.Children)
+                        try
                         {
-                            list.Add(nodeBuilders[item].BasedOn);
+                            foreach (var item in collectionNode.Children)
+                            {
+                                list.Add(nodeBuilders[item].BasedOn);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new GraphException($"Failed to add items to collection [{node.MyLink}].", ex);
                         }
                     }
                     else
@@ -209,16 +330,24 @@ namespace BassClefStudio.NET.Serialization.Graphs
                 {
                     //// Object initialization
                     var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-                    foreach (var stringProp in node.Properties)
+                    var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (var stringProp in remainingProperties[node.MyLink])
                     {
                         var refProp = properties.FirstOrDefault(p => p.Name == stringProp.Key);
-                        if (refProp != null)
+                        if (refProp != null && refProp.CanWrite)
                         {
                             if (stringProp.Value is JObject o)
                             {
                                 if (o.ContainsKey("Id"))
                                 {
-                                    refProp.SetValue(node.BasedOn, nodeBuilders[(int)o["Id"]].BasedOn);
+                                    try
+                                    {
+                                        refProp.SetValue(node.BasedOn, GetObject(nodeBuilders[(int)o["Id"]].BasedOn, refProp.PropertyType));
+                                    }
+                                    catch(Exception ex)
+                                    {
+                                        throw new GraphException($"Failed to set (object) property value [{node.MyLink}].{stringProp.Key}.", ex);
+                                    }
                                 }
                                 else
                                 {
@@ -227,12 +356,54 @@ namespace BassClefStudio.NET.Serialization.Graphs
                             }
                             else
                             {
-                                refProp.SetValue(node.BasedOn, stringProp.Value);
+                                try
+                                { 
+                                    refProp.SetValue(node.BasedOn, GetObject(stringProp.Value, refProp.PropertyType));
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw new GraphException($"Failed to set (value) property value [{node.MyLink}].{stringProp.Key}.", ex);
+                                }
                             }
                         }
                         else
                         {
-                            throw new GraphException($"Could not find property {stringProp.Value} on type {type.FullName}.");
+                            if(Behaviours.GetBehaviours(type).HasFlag(GraphBehaviour.SetFields))
+                            {
+                                var refField = fields.FirstOrDefault(p => p.Name == stringProp.Key);
+                                if(refField != null)
+                                {
+                                    if (stringProp.Value is JObject o)
+                                    {
+                                        if (o.ContainsKey("Id"))
+                                        {
+                                            try
+                                            { 
+                                                refField.SetValue(node.BasedOn, GetObject(nodeBuilders[(int)o["Id"]].BasedOn, refField.FieldType));
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                throw new GraphException($"Failed to set (object) field value [{node.MyLink}].{stringProp.Key}.", ex);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            throw new GraphTypeException($"Unknown JSON object, expected NodeLink: {o}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        try
+                                        {
+                                            refField.SetValue(node.BasedOn, GetObject(stringProp.Value, refField.FieldType));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            throw new GraphException($"Failed to set (value) field value [{node.MyLink}].{stringProp.Key}.", ex);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -241,42 +412,46 @@ namespace BassClefStudio.NET.Serialization.Graphs
         }
 
         #endregion
-        #region TrustedTypes
+        #region Types
 
-        private Type GetTrustedType(string typeName)
+        private bool IsRefType(object o)
         {
-            var type = Type.GetType(typeName);
-            VerifyTrust(type);
-            return type;
+            return o != null
+                && (TrustedTypes.IsMember(o.GetType())
+                || (!(o is string) && o.GetType().IsClass));
         }
 
-        private Type GetTrustedType(object o)
+        private bool IsValueType(object o)
         {
-            var type = o.GetType();
-            VerifyTrust(type);
-            return type;
+            return o == null
+                || o is string
+                || !(o.GetType().IsClass);
         }
 
-        private void VerifyTrust(Type type)
+        private object GetObject(object o, Type desiredType)
         {
-            if (KnownAssemblies.Contains(type.Assembly))
+            if(o == null)
             {
-                return;
+                return null;
             }
-            else if (KnownTypes.Contains(type))
+            else if (desiredType.IsAssignableFrom(o.GetType()))
             {
-                return;
+                return o;
             }
-
-            var trustedTypes = KnownAssemblies.SelectMany(a => a.GetTypes()).Concat(KnownTypes);
-            if (type.IsGenericType && trustedTypes.Contains(type.GetGenericTypeDefinition()))
+            else
             {
-                return;
+                return Convert.ChangeType(o, desiredType);
             }
-
-            throw new GraphTypeException($"The type {type.FullName} of this object is not trusted.");
         }
 
         #endregion
+    }
+
+    internal static class GraphExtensions
+    {
+        public static IDictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> elements)
+        {
+            return elements.ToDictionary(e => e.Key, e => e.Value);
+        }
     }
 }
