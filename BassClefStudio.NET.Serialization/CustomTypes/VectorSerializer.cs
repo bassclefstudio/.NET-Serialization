@@ -10,28 +10,19 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
     /// <summary>
     /// An <see cref="ICustomSerializer"/> for dealing with <see cref="Guid"/>s
     /// </summary>
-    public class VectorSerializer : ICustomSerializer
+    public class VectorSerializer : CustomSerializer<Vector2>
     {
         /// <inheritdoc/>
-        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(Vector2));
+        public override Func<Vector2, object>[] GetProperties { get; } = new Func<Vector2, object>[]
+        {
+            v => v.X,
+            v => v.Y
+        };
 
         /// <inheritdoc/>
-        public object Deserialize(string value)
+        public override Vector2 DeserializeObject(string[] values)
         {
-            var array = value.Split(new string[] { ";" }, StringSplitOptions.RemoveEmptyEntries);
-            if(array.Length != 2)
-            {
-                throw new GraphException("Vector2 serialization expects two float parameters.");
-            }
-            var fs = array.Select(c => float.Parse(c)).ToArray();
-            return new Vector2(fs[0], fs[1]);
-        }
-
-        /// <inheritdoc/>
-        public string Serialize(object o)
-        {
-            var v = (Vector2)o;
-            return $"{v.X};{v.Y}";
+            return new Vector2(float.Parse(values[0]), float.Parse(values[1]));
         }
     }
 }
