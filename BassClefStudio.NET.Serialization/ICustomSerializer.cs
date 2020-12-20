@@ -32,6 +32,57 @@ namespace BassClefStudio.NET.Serialization
     }
 
     /// <summary>
+    /// A base implementation of <see cref="ICustomSerializer"/> that provides basic <see cref="string"/> serialization for a single type.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public abstract class CustomSerializer<T> : ICustomSerializer
+    {
+        /// <inheritdoc/>
+        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(T));
+
+        /// <summary>
+        /// An array of <see cref="Func{T, TResult}"/> for serializing the individual properties of a recieved <typeparamref name="T"/> object.
+        /// </summary>
+        public abstract Func<T, object>[] GetProperties { get; }
+
+        /// <summary>
+        /// Deserialize a <typeparamref name="T"/> object from the retrieved array of <see cref="string"/> property values.
+        /// </summary>
+        /// <param name="values">The collection of <see cref="string"/> values previously created from <see cref="GetProperties"/>.</param>
+        public abstract T DeserializeObject(string[] values);
+
+        /// <summary>
+        /// A <see cref="string"/> value to use to separate property values in the serialized <see cref="string"/>.
+        /// </summary>
+        public virtual string Delimiter { get; } = ";";
+
+        /// <inheritdoc/>
+        public object Deserialize(string value)
+        {
+            var vals = value.Split(new string[] { Delimiter }, StringSplitOptions.RemoveEmptyEntries);
+            if(vals.Length != GetProperties.Length)
+            {
+                throw new GraphException($"Serialized object contains the incorrect number of properties. Recieved {vals.Length}, expected {GetProperties.Length}");
+            }
+
+            return DeserializeObject(vals);
+        }
+
+        /// <inheritdoc/>
+        public string Serialize(object o)
+        {
+            if(o is T t)
+            {
+                return string.Join(Delimiter, GetProperties.Select(p => p(t)).ToArray());
+            }
+            else
+            {
+                throw new ArgumentException($"Serializer expected type {typeof(T).Name} - recieved {o?.GetType().Name}.");
+            }
+        }
+    }
+
+    /// <summary>
     /// Contains extension methods for the <see cref="ICustomSerializer"/> interface.
     /// </summary>
     internal static class SerializerExtensions

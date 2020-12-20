@@ -1,4 +1,5 @@
-﻿using BassClefStudio.NET.Serialization.Graphs;
+﻿using BassClefStudio.NET.Serialization.CustomTypes;
+using BassClefStudio.NET.Serialization.Graphs;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,12 @@ namespace BassClefStudio.NET.Serialization
         /// </summary>
         public Graph Graph { get; }
 
+        private static ICustomSerializer[] DefaultCustomSerializers = new ICustomSerializer[]
+        {
+            new GuidSerializer(),
+            new VectorSerializer()
+        };
+
         /// <summary>
         /// Creates a new <see cref="SerializationService"/>.
         /// </summary>
@@ -24,6 +31,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(params Assembly[] knownAssemblies)
         {
             Graph = new Graph(knownAssemblies);
+            AddCustomSerializers(DefaultCustomSerializers);
         }
 
         /// <summary>
@@ -31,9 +39,8 @@ namespace BassClefStudio.NET.Serialization
         /// </summary>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         /// <param name="defaultBehaviours">A set of <see cref="GraphBehaviour"/>s that will be applied to all trusted types in the <see cref="Graph"/>.</param>
-        public SerializationService(GraphBehaviour defaultBehaviours, params Assembly[] knownAssemblies)
+        public SerializationService(GraphBehaviour defaultBehaviours, params Assembly[] knownAssemblies) : this(knownAssemblies)
         {
-            Graph = new Graph(knownAssemblies);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, defaultBehaviours));
         }
 
@@ -44,6 +51,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(params Type[] knownTypes)
         {
             Graph = new Graph(knownTypes);
+            AddCustomSerializers(DefaultCustomSerializers);
         }
 
         /// <summary>
@@ -51,9 +59,8 @@ namespace BassClefStudio.NET.Serialization
         /// </summary>
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
         /// <param name="defaultBehaviours">A set of <see cref="GraphBehaviour"/>s that will be applied to all trusted types in the <see cref="Graph"/>.</param>
-        public SerializationService(GraphBehaviour defaultBehaviours, params Type[] knownTypes)
+        public SerializationService(GraphBehaviour defaultBehaviours, params Type[] knownTypes) : this(knownTypes)
         {
-            Graph = new Graph(knownTypes);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, defaultBehaviours));
         }
 
@@ -66,6 +73,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes, GraphBehaviour defaultBehaviours = GraphBehaviour.None)
         {
             Graph = new Graph(knownAssemblies, knownTypes);
+            AddCustomSerializers(DefaultCustomSerializers);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, defaultBehaviours));
         }
 
