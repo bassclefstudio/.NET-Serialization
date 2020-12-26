@@ -67,14 +67,26 @@ namespace BassClefStudio.NET.Serialization
         /// <summary>
         /// Creates a new <see cref="SerializationService"/>.
         /// </summary>
+        /// <param name="defaultBehaviours">A set of <see cref="GraphBehaviour"/>s that will be applied to all trusted types in the <see cref="Graph"/>.</param>
         /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
         /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
-        /// <param name="defaultBehaviours">A set of <see cref="GraphBehaviour"/>s that will be applied to all trusted types in the <see cref="Graph"/>.</param>
-        public SerializationService(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes, GraphBehaviour defaultBehaviours = GraphBehaviour.None)
+        public SerializationService(GraphBehaviour defaultBehaviours, IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
         {
             Graph = new Graph(knownAssemblies, knownTypes);
             AddCustomSerializers(DefaultCustomSerializers);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, defaultBehaviours));
+        }
+
+        /// <summary>
+        /// Creates a new <see cref="SerializationService"/>.
+        /// </summary>
+        /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
+        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
+        public SerializationService(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
+        {
+            Graph = new Graph(knownAssemblies, knownTypes);
+            AddCustomSerializers(DefaultCustomSerializers);
+            Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, GraphBehaviour.None));
         }
 
         /// <summary>
