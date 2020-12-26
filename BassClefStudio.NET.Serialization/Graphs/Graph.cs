@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using BassClefStudio.NET.Core.Primitives;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
@@ -43,7 +45,19 @@ namespace BassClefStudio.NET.Serialization.Graphs
         public static Type[] DefaultTrustedTypes { get; } = new Type[]
         {
             typeof(List<>),
-            typeof(ObservableCollection<>)
+            typeof(ObservableCollection<>),
+            typeof(Vector2),
+            typeof(Guid),
+            typeof(DateTimeOffset)
+        };
+
+        /// <summary>
+        /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
+        /// </summary>
+        public static Assembly[] DefaultTrustedAssemblies { get; } = new Assembly[]
+        {
+            typeof(Graph).Assembly,
+            typeof(Color).Assembly
         };
 
         private int Index = 0;
@@ -52,8 +66,10 @@ namespace BassClefStudio.NET.Serialization.Graphs
             Nodes = new List<Node>();
             Behaviours = new List<GraphBehaviourInfo>();
             CustomSerializers = new List<ICustomSerializer>();
+
             TrustedTypes = new TypeGroup();
             TrustedTypes.KnownTypes.AddRange(DefaultTrustedTypes);
+            TrustedTypes.KnownAssemblies.AddRange(DefaultTrustedAssemblies);
         }
 
         /// <summary>
