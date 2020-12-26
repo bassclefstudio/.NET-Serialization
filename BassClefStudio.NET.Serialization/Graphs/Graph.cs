@@ -48,7 +48,9 @@ namespace BassClefStudio.NET.Serialization.Graphs
             typeof(ObservableCollection<>),
             typeof(Vector2),
             typeof(Guid),
-            typeof(DateTimeOffset)
+            typeof(DateTimeOffset),
+            typeof(Color),
+            typeof(DateTimeSpan)
         };
 
         /// <summary>
@@ -56,8 +58,6 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// </summary>
         public static Assembly[] DefaultTrustedAssemblies { get; } = new Assembly[]
         {
-            typeof(Graph).Assembly,
-            typeof(Color).Assembly
         };
 
         private int Index = 0;
