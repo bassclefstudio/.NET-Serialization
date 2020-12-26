@@ -78,6 +78,18 @@ namespace BassClefStudio.NET.Serialization
         }
 
         /// <summary>
+        /// Creates a new <see cref="SerializationService"/>.
+        /// </summary>
+        /// <param name="knownAssemblies">A collection of known <see cref="Assembly"/> references.</param>
+        /// <param name="knownTypes">A collection of known <see cref="Type"/> references.</param>
+        public SerializationService(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
+        {
+            Graph = new Graph(knownAssemblies, knownTypes);
+            AddCustomSerializers(DefaultCustomSerializers);
+            Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, GraphBehaviour.None));
+        }
+
+        /// <summary>
         /// Adds a given specific <see cref="GraphBehaviourInfo"/> to the underlying <see cref="Graph"/>.
         /// </summary>
         /// <param name="behaviourInfo">The <see cref="GraphBehaviourInfo"/> behaviour.</param>
