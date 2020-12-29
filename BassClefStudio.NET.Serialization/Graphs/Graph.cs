@@ -338,7 +338,22 @@ namespace BassClefStudio.NET.Serialization.Graphs
                 else if (node is CollectionNode collectionNode)
                 {
                     //// Collection initialization
-                    if (collectionNode.BasedOn is IList list)
+                    if (collectionNode.BasedOn is Array array)
+                    {
+                        //// Array initialization
+                        try
+                        {
+                            for (int i = 0; i < collectionNode.Children.Count; i++)
+                            {
+                                array.SetValue(nodeBuilders[collectionNode.Children[i]].BasedOn, i);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new GraphException($"Failed to add items to array [{node.MyLink}].", ex);
+                        }
+                    }
+                    else if (collectionNode.BasedOn is IList list)
                     {
                         //// List initialization
                         try
@@ -350,24 +365,9 @@ namespace BassClefStudio.NET.Serialization.Graphs
                         }
                         catch (Exception ex)
                         {
-                            throw new GraphException($"Failed to add items to collection [{node.MyLink}].", ex);
+                            throw new GraphException($"Failed to add items to list [{node.MyLink}].", ex);
                         }
-                    }
-                    else if(collectionNode.BasedOn is Array array)
-                    {
-                        //// Array initialization
-                        try
-                        {
-                            for (int i = 0; i < collectionNode.Children.Count; i++)
-                            {
-                                array.SetValue(collectionNode.Children[i], i);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new GraphException($"Failed to add items to array [{node.MyLink}].", ex);
-                        }
-                    }
+                    } 
                     else
                     {
                         throw new GraphException($"Collection initialization currently does not support anything other than arrays or IList<T>. Type: {type.FullName}");

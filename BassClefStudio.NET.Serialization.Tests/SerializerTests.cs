@@ -2,6 +2,7 @@ using BassClefStudio.NET.Serialization.Graphs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Reflection;
 
@@ -60,17 +61,37 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base b = new Base();
             Base c = new Base();
             Base d = new Base();
-            ListDerived e = new ListDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
+            CollectionDerived e = new CollectionDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
             var serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
-            Assert.IsInstanceOfType(newE, typeof(ListDerived));
-            var listE = (ListDerived)newE;
+            Assert.IsInstanceOfType(newE, typeof(CollectionDerived));
+            var listE = (CollectionDerived)newE;
             Assert.IsNotNull(listE.Parents);
-            Assert.AreEqual(4, listE.Parents.Count);
-            Assert.AreEqual(listE.Child, listE.Parents[0]);
+            Assert.AreEqual(4, listE.Parents.Count());
+            Assert.AreEqual(listE.Child, listE.Parents.ElementAt(0));
+        }
+
+        [TestMethod]
+        public void TestArray()
+        {
+            Base a = new Base();
+            Base b = new Base();
+            Base c = new Base();
+            Base d = new Base();
+            CollectionDerived e = new CollectionDerived() { Child = a, Parents = new Base[] { a, b, c, d } };
+
+            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            string json = serializer.Serialize(e);
+            Console.WriteLine(json);
+            Base newE = serializer.Deserialize<Base>(json);
+            Assert.IsInstanceOfType(newE, typeof(CollectionDerived));
+            var listE = (CollectionDerived)newE;
+            Assert.IsNotNull(listE.Parents);
+            Assert.AreEqual(4, listE.Parents.Count());
+            Assert.AreEqual(listE.Child, listE.Parents.ElementAt(0));
         }
 
         [TestMethod]
@@ -147,9 +168,9 @@ namespace BassClefStudio.NET.Serialization.Tests
         }
     }
 
-    public class ListDerived : Base
+    public class CollectionDerived : Base
     {
-        public List<Base> Parents { get; set; }
+        public IEnumerable<Base> Parents { get; set; }
     }
 
     public class GuidSerializer : ICustomSerializer
