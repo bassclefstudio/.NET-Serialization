@@ -46,6 +46,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
         {
             typeof(List<>),
             typeof(ObservableCollection<>),
+            typeof(Array),
             typeof(Vector2),
             typeof(Guid),
             typeof(DateTimeOffset),
@@ -280,6 +281,20 @@ namespace BassClefStudio.NET.Serialization.Graphs
                                 }
                             }
                         }
+                        else if (node is CollectionNode collectionNode && nodeType.IsArray)
+                        {
+                            int length = collectionNode.Children.Count;
+                            var arrayConst = nodeType.GetConstructor(new[] { typeof(int) });
+                            if (arrayConst != null)
+                            {
+                                node.BasedOn = arrayConst.Invoke(new object[] { length });
+                                isConstructed = true;
+                            }
+                            else
+                            {
+                                throw new GraphException($"Could not create new instance of array {collectionNode.MyLink} - no valid array constructor found.");
+                            }
+                        }
                         else
                         {
                             var emptyConstructor = myConstructors.FirstOrDefault(c => !c.GetParameters().Any());
@@ -325,6 +340,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
                     //// Collection initialization
                     if (collectionNode.BasedOn is IList list)
                     {
+                        //// List initialization
                         try
                         {
                             foreach (var item in collectionNode.Children)
@@ -337,9 +353,24 @@ namespace BassClefStudio.NET.Serialization.Graphs
                             throw new GraphException($"Failed to add items to collection [{node.MyLink}].", ex);
                         }
                     }
+                    else if(collectionNode.BasedOn is Array array)
+                    {
+                        //// Array initialization
+                        try
+                        {
+                            for (int i = 0; i < collectionNode.Children.Count; i++)
+                            {
+                                array.SetValue(collectionNode.Children[i], i);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new GraphException($"Failed to add items to array [{node.MyLink}].", ex);
+                        }
+                    }
                     else
                     {
-                        throw new GraphException($"Collection initialization currently does not support anything other than IList<T>. Type: {type.FullName}");
+                        throw new GraphException($"Collection initialization currently does not support anything other than arrays or IList<T>. Type: {type.FullName}");
                     }
                 }
                 else

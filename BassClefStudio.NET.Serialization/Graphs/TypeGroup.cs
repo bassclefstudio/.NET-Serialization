@@ -119,6 +119,11 @@ namespace BassClefStudio.NET.Serialization.Graphs
                 return true;
             }
 
+            if(trustedTypes.Contains(typeof(Array)) && type.IsArray)
+            {
+                return true;
+            }
+
             return false;
         }
     }
