@@ -9,28 +9,12 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
     /// <summary>
     /// An <see cref="ICustomSerializer"/> for dealing with <see cref="DateTimeOffset"/>s.
     /// </summary>
-    public class DateTimeOffsetSerializer : ICustomSerializer
+    public class DateTimeOffsetSerializer : StringSerializer<DateTimeOffset>
     {
         /// <inheritdoc/>
-        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(DateTimeOffset));
-
-        /// <inheritdoc/>
-        public object Deserialize(string value)
+        public override DateTimeOffset ParseValue(string value)
         {
             return DateTimeOffset.Parse(value);
-        }
-
-        /// <inheritdoc/>
-        public string Serialize(object o)
-        {
-            if (o is DateTimeOffset offset)
-            {
-                return offset.ToString();
-            }
-            else
-            {
-                throw new ArgumentException($"DateTimeOffsetSerializer expects objects of type DateTimeOffset - object type {o?.GetType().Name}");
-            }
         }
     }
 

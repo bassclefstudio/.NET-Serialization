@@ -8,21 +8,18 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
     /// <summary>
     /// An <see cref="ICustomSerializer"/> for dealing with <see cref="Guid"/>s
     /// </summary>
-    public class GuidSerializer : ICustomSerializer
+    public class GuidSerializer : StringSerializer<Guid>
     {
         /// <inheritdoc/>
-        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(Guid));
-
-        /// <inheritdoc/>
-        public object Deserialize(string value)
+        public override Guid ParseValue(string value)
         {
             return Guid.Parse(value);
         }
 
         /// <inheritdoc/>
-        public string Serialize(object o)
+        public override string GetString(Guid value)
         {
-            return ((Guid)o).ToString("N");
+            return value.ToString("N");
         }
     }
 }

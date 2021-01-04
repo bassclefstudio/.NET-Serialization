@@ -32,9 +32,9 @@ namespace BassClefStudio.NET.Serialization
     }
 
     /// <summary>
-    /// A base implementation of <see cref="ICustomSerializer"/> that provides basic <see cref="string"/> serialization for a single type.
+    /// A base implementation of <see cref="ICustomSerializer"/> that provides basic <see cref="string"/> serialization of properties for a single type.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of object this <see cref="CustomSerializer{T}"/> serializes.</typeparam>
     public abstract class CustomSerializer<T> : ICustomSerializer
     {
         /// <inheritdoc/>
@@ -74,6 +74,48 @@ namespace BassClefStudio.NET.Serialization
             if(o is T t)
             {
                 return string.Join(Delimiter, GetProperties.Select(p => p(t)).ToArray());
+            }
+            else
+            {
+                throw new ArgumentException($"Serializer expected type {typeof(T).Name} - recieved {o?.GetType().Name}.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// A base implementation of <see cref="ICustomSerializer"/> that provides basic <see cref="object.ToString"/> and object parsing serialization for a single type.
+    /// </summary>
+    /// <typeparam name="T">The type of object this <see cref="StringSerializer{T}"/> serializes.</typeparam>
+    public abstract class StringSerializer<T> : ICustomSerializer
+    {
+        /// <inheritdoc/>
+        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(T));
+
+        /// <summary>
+        /// A function that, given a <see cref="string"/> representation, can parse a <typeparamref name="T"/> object value.
+        /// </summary>
+        public abstract T ParseValue(string value);
+
+        /// <summary>
+        /// A function that, given a <typeparamref name="T"/> object, produces a <see cref="string"/> representation.
+        /// </summary>
+        public virtual string GetString(T value)
+        {
+            return value.ToString();
+        }
+
+        /// <inheritdoc/>
+        public object Deserialize(string value)
+        {
+            return ParseValue(value);
+        }
+
+        /// <inheritdoc/>
+        public string Serialize(object o)
+        {
+            if (o is T t)
+            {
+                return GetString(t);
             }
             else
             {
