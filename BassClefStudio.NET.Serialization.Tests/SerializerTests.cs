@@ -1,3 +1,4 @@
+using BassClefStudio.NET.Core.Primitives;
 using BassClefStudio.NET.Serialization.Graphs;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
@@ -127,13 +128,55 @@ namespace BassClefStudio.NET.Serialization.Tests
             GuidDerived a = new GuidDerived() { Child = null, Id = Guid.NewGuid() };
             Base b = new Base() { Child = a };
             var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
-            serializer.AddCustomSerializer(new GuidSerializer());
             string json = serializer.Serialize(b);
             Console.WriteLine(json);
             Base newB = serializer.Deserialize<Base>(json);
             Assert.IsInstanceOfType(newB.Child, typeof(GuidDerived));
             Assert.AreEqual(a.Id, ((GuidDerived)newB.Child).Id);
         }
+
+        #region ValueTypes
+
+        private void TestValue<T>(T value)
+        {
+            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            string json = serializer.Serialize(value);
+            Console.WriteLine(json);
+            T newVal = serializer.Deserialize<T>(json);
+            Assert.AreEqual(value, newVal, $"Value type serialization failed on {typeof(T).Name} native serializer.");
+        }
+
+        [TestMethod]
+        public void ColorTest()
+        {
+            Color color = new Color(130, 147, 89, 190);
+            TestValue(color);
+        }
+
+        [TestMethod]
+        public void GuidTest()
+        {
+            Guid id = Guid.NewGuid();
+            TestValue(id);
+        }
+
+        [TestMethod]
+        public void TimeTest()
+        {
+            DateTimeOffset offset = new DateTimeOffset(new DateTime(2021, 8, 30));
+            TestValue(offset);
+            DateTimeSpan span = new DateTimeSpan(offset, new TimeSpan(4, 33, 0));
+            TestValue(span);
+        }
+
+        [TestMethod]
+        public void VectorTest()
+        {
+            Vector2 vector = new Vector2(470, -132);
+            TestValue(vector);
+        }
+
+        #endregion
     }
 
     public class Base

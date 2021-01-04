@@ -18,12 +18,6 @@ namespace BassClefStudio.NET.Serialization
         /// </summary>
         public Graph Graph { get; }
 
-        private static ICustomSerializer[] DefaultCustomSerializers = new ICustomSerializer[]
-        {
-            new GuidSerializer(),
-            new VectorSerializer()
-        };
-
         /// <summary>
         /// Creates a new <see cref="SerializationService"/>.
         /// </summary>
@@ -31,7 +25,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(params Assembly[] knownAssemblies)
         {
             Graph = new Graph(knownAssemblies);
-            AddCustomSerializers(DefaultCustomSerializers);
+            AddCustomSerializers(NativeTypes.DefaultCustomSerializers);
         }
 
         /// <summary>
@@ -51,7 +45,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(params Type[] knownTypes)
         {
             Graph = new Graph(knownTypes);
-            AddCustomSerializers(DefaultCustomSerializers);
+            AddCustomSerializers(NativeTypes.DefaultCustomSerializers);
         }
 
         /// <summary>
@@ -73,7 +67,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(GraphBehaviour defaultBehaviours, IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
         {
             Graph = new Graph(knownAssemblies, knownTypes);
-            AddCustomSerializers(DefaultCustomSerializers);
+            AddCustomSerializers(NativeTypes.DefaultCustomSerializers);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, defaultBehaviours));
         }
 
@@ -85,7 +79,7 @@ namespace BassClefStudio.NET.Serialization
         public SerializationService(IEnumerable<Assembly> knownAssemblies, IEnumerable<Type> knownTypes)
         {
             Graph = new Graph(knownAssemblies, knownTypes);
-            AddCustomSerializers(DefaultCustomSerializers);
+            AddCustomSerializers(NativeTypes.DefaultCustomSerializers);
             Graph.Behaviours.Add(new GraphBehaviourInfo(Graph.TrustedTypes, GraphBehaviour.None));
         }
 

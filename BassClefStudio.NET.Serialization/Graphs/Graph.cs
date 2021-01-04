@@ -1,4 +1,5 @@
 ﻿using BassClefStudio.NET.Core.Primitives;
+using BassClefStudio.NET.Serialization.CustomTypes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -39,28 +40,6 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// </summary>
         public List<ICustomSerializer> CustomSerializers { get; }
 
-        /// <summary>
-        /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
-        /// </summary>
-        public static Type[] DefaultTrustedTypes { get; } = new Type[]
-        {
-            typeof(List<>),
-            typeof(ObservableCollection<>),
-            typeof(Array),
-            typeof(Vector2),
-            typeof(Guid),
-            typeof(DateTimeOffset),
-            typeof(Color),
-            typeof(DateTimeSpan)
-        };
-
-        /// <summary>
-        /// Gets the static array of <see cref="Type"/>s that the <see cref="Graph"/> trusts by default. This includes basic types for collections such as <see cref="List{T}"/>.
-        /// </summary>
-        public static Assembly[] DefaultTrustedAssemblies { get; } = new Assembly[]
-        {
-        };
-
         private int Index = 0;
         private Graph()
         {
@@ -69,8 +48,8 @@ namespace BassClefStudio.NET.Serialization.Graphs
             CustomSerializers = new List<ICustomSerializer>();
 
             TrustedTypes = new TypeGroup();
-            TrustedTypes.KnownTypes.AddRange(DefaultTrustedTypes);
-            TrustedTypes.KnownAssemblies.AddRange(DefaultTrustedAssemblies);
+            TrustedTypes.KnownTypes.AddRange(NativeTypes.DefaultTrustedTypes);
+            TrustedTypes.KnownAssemblies.AddRange(NativeTypes.DefaultTrustedAssemblies);
         }
 
         /// <summary>
