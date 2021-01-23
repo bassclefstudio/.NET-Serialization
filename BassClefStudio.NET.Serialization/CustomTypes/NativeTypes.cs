@@ -23,6 +23,7 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
             new GuidSerializer(),
             new VectorSerializer(),
             new DateTimeOffsetSerializer(),
+            new DateTimeZoneSerializer(),
             new DateTimeSpanSerializer()
         };
 
@@ -37,6 +38,7 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
             typeof(Vector2),
             typeof(Guid),
             typeof(DateTimeOffset),
+            typeof(DateTimeZone),
             typeof(Color),
             typeof(DateTimeSpan)
         };

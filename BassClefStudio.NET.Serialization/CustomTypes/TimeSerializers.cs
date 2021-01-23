@@ -19,6 +19,25 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
     }
 
     /// <summary>
+    /// An <see cref="ICustomSerializer"/> for dealing with <see cref="DateTimeZone"/>s.
+    /// </summary>
+    public class DateTimeZoneSerializer : CustomSerializer<DateTimeZone>
+    {
+        /// <inheritdoc/>
+        public override Func<DateTimeZone, object>[] GetProperties { get; } = new Func<DateTimeZone, object>[]
+        {
+            d => d.DateTime,
+            d => d.TimeZone.Id
+        };
+
+        /// <inheritdoc/>
+        public override DateTimeZone DeserializeObject(string[] values)
+        {
+            return new DateTimeZone(DateTime.Parse(values[0]), TimeZoneInfo.FindSystemTimeZoneById(values[1]));
+        }
+    }
+
+    /// <summary>
     /// An <see cref="ICustomSerializer"/> for dealing with <see cref="DateTimeSpan"/>s.
     /// </summary>
     public class DateTimeSpanSerializer : CustomSerializer<DateTimeSpan>
