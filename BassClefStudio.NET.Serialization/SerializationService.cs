@@ -116,5 +116,11 @@ namespace BassClefStudio.NET.Serialization
             var o = Graph.BuildObject();
             return (T)o;
         }
+
+        /// <inheritdoc/>
+        public bool IsSerializable(Type type)
+        {
+            return Graph.TrustedTypes.IsMember(type);
+        }
     }
 }
