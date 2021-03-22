@@ -19,7 +19,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             Derived b = new Derived() { Child = a, Name = "Fred" };
             a.Child = b;
 
-            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -33,7 +33,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             Derived d = new Derived();
 
-            var serializer = new SerializationService(typeof(Base));
+            ISerializationService serializer = new SerializationService(typeof(Base));
             Assert.ThrowsException<GraphTypeException>(() => serializer.Serialize(d));
         }
 
@@ -42,7 +42,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
-            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
 
@@ -51,7 +51,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
 
-            var serializer = new SerializationService(typeof(Base));
+            ISerializationService serializer = new SerializationService(typeof(Base));
             Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
         }
 
@@ -64,7 +64,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
-            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -84,7 +84,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new Base[] { a, b, c, d } };
 
-            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -102,7 +102,7 @@ namespace BassClefStudio.NET.Serialization.Tests
             DerivedNoConst b = new DerivedNoConst(a, "Fred");
             a.Child = b;
 
-            var serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -115,7 +115,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         public void ExplicitValueSerialize()
         {
             Vector2 vector = new Vector2(10, 40);
-            var serializer = new SerializationService(GraphBehaviour.IncludeFields | GraphBehaviour.SetFields, typeof(Vector2));
+            ISerializationService serializer = new SerializationService(GraphBehaviour.IncludeFields | GraphBehaviour.SetFields, typeof(Vector2));
             string json = serializer.Serialize(vector);
             Console.WriteLine(json);
             Vector2 newVector = serializer.Deserialize<Vector2>(json);
@@ -127,7 +127,7 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             GuidDerived a = new GuidDerived() { Child = null, Id = Guid.NewGuid() };
             Base b = new Base() { Child = a };
-            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            ISerializationService serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
             string json = serializer.Serialize(b);
             Console.WriteLine(json);
             Base newB = serializer.Deserialize<Base>(json);
@@ -139,7 +139,7 @@ namespace BassClefStudio.NET.Serialization.Tests
 
         private void TestValue<T>(T value)
         {
-            var serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            ISerializationService serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
             string json = serializer.Serialize(value);
             Console.WriteLine(json);
             T newVal = serializer.Deserialize<T>(json);
