@@ -47,5 +47,26 @@ namespace BassClefStudio.NET.Serialization
         /// <param name="json">The <see cref="string"/> JSON content.</param>
         /// <returns>The parent <see cref="object"/>, as type <typeparamref name="T"/>.</returns>
         T Deserialize<T>(string json);
+
+        /// <summary>
+        /// Checks whether this <see cref="ISerializationService"/> supports the serialization of the given type.
+        /// </summary>
+        /// <param name="type">The desired <see cref="Type"/> type of the object you wish to serialize.</param>
+        /// <returns>A <see cref="bool"/> indicating whether this type can be serialized using this <see cref="ISerializationService"/>'s <see cref="Graph"/> and any other capabailities.</returns>
+        bool IsSerializable(Type type);
+    }
+
+    /// <summary>
+    /// Provides extension methods for the 
+    /// </summary>
+    public static class SerializationServiceExtensions
+    {
+        /// <summary>
+        /// Checks whether this <see cref="ISerializationService"/> supports the serialization of the given type.
+        /// </summary>
+        /// <typeparam name="T">The desired type of the object you wish to serialize.</param>
+        /// <returns>A <see cref="bool"/> indicating whether this type can be serialized using this <see cref="ISerializationService"/>'s <see cref="Graph"/> and any other capabailities.</returns>
+        public static bool IsSerializable<T>(this ISerializationService service)
+            => service.IsSerializable(typeof(T));
     }
 }
