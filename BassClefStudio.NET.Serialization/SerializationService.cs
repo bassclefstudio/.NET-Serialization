@@ -102,19 +102,33 @@ namespace BassClefStudio.NET.Serialization
         /// <inheritdoc/>
         public string Serialize(object objectGraph, Formatting formatting = Formatting.None)
         {
-            Graph.Nodes.Clear();
-            Graph.BuildNodes(objectGraph);
-            return JsonConvert.SerializeObject(Graph.Nodes, formatting);
+            if (objectGraph == null)
+            {
+                return string.Empty;
+            }
+            else
+            {
+                Graph.Nodes.Clear();
+                Graph.BuildNodes(objectGraph);
+                return JsonConvert.SerializeObject(Graph.Nodes, formatting);
+            }
         }
 
         /// <inheritdoc/>
         public T Deserialize<T>(string json)
         {
-            var nodes = JsonConvert.DeserializeObject<Node[]>(json);
-            Graph.Nodes.Clear();
-            Graph.Nodes.AddRange(nodes);
-            var o = Graph.BuildObject();
-            return (T)o;
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                return default(T);
+            }
+            else
+            {
+                var nodes = JsonConvert.DeserializeObject<Node[]>(json);
+                Graph.Nodes.Clear();
+                Graph.Nodes.AddRange(nodes);
+                var o = Graph.BuildObject();
+                return (T)o;
+            }
         }
 
         /// <inheritdoc/>
