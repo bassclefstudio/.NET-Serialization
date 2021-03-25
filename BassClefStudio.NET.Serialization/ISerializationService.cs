@@ -64,7 +64,7 @@ namespace BassClefStudio.NET.Serialization
         /// <summary>
         /// Checks whether this <see cref="ISerializationService"/> supports the serialization of the given type.
         /// </summary>
-        /// <typeparam name="T">The desired type of the object you wish to serialize.</param>
+        /// <typeparam name="T">The desired type of the object you wish to serialize.</typeparam>
         /// <param name="service">The <see cref="ISerializationService"/> to query.</param>
         /// <returns>A <see cref="bool"/> indicating whether this type can be serialized using this <see cref="ISerializationService"/>'s <see cref="Graph"/> and any other capabailities.</returns>
         public static bool IsSerializable<T>(this ISerializationService service)
