@@ -24,7 +24,14 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
             new VectorSerializer(),
             new DateTimeOffsetSerializer(),
             new DateTimeZoneSerializer(),
-            new DateTimeSpanSerializer()
+            new DateTimeSpanSerializer(),
+            new StringSerializer(),
+            new IntSerializer(),
+            new LongSerializer(),
+            new FloatSerializer(),
+            new DoubleSerializer(),
+            new DecimalSerializer(),
+            new BoolSerializer()
         };
 
         /// <summary>
@@ -40,7 +47,14 @@ namespace BassClefStudio.NET.Serialization.CustomTypes
             typeof(DateTimeOffset),
             typeof(DateTimeZone),
             typeof(Color),
-            typeof(DateTimeSpan)
+            typeof(DateTimeSpan),
+            typeof(string),
+            typeof(int),
+            typeof(long),
+            typeof(float),
+            typeof(double),
+            typeof(decimal),
+            typeof(bool)
         };
 
         /// <summary>

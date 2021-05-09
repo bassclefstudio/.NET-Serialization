@@ -89,7 +89,14 @@ namespace BassClefStudio.NET.Serialization.Graphs
         /// <param name="o">the <see cref="object"/> to build the <see cref="Graph"/> from.</param>
         public NodeLink BuildNodes(object o)
         {
-            if (o is IEnumerable<object> collection)
+            if(o is null)
+            {
+                var myNode = CreateCustomNode(o);
+                myNode.TypeName = "null";
+                myNode.ValueString = null;
+                return myNode.MyLink;
+            }
+            else if (o is IEnumerable<object> collection)
             {
                 //// Collection serialization
                 var myNode = CreateCollectionNode(collection);
@@ -120,21 +127,14 @@ namespace BassClefStudio.NET.Serialization.Graphs
                     IDictionary<string, object> propertyRefs = myNode.Properties;
                     foreach (var p in myProps)
                     {
-                        if (IsRefType(p.Value))
+                        var myRef = Nodes.FirstOrDefault(n => n.BasedOn == p.Value);
+                        if (myRef != null)
                         {
-                            var myRef = Nodes.FirstOrDefault(n => n.BasedOn == p.Value);
-                            if (myRef != null)
-                            {
-                                propertyRefs.Add(p.Key, myRef.MyLink);
-                            }
-                            else
-                            {
-                                propertyRefs.Add(p.Key, BuildNodes(p.Value));
-                            }
+                            propertyRefs.Add(p.Key, myRef.MyLink);
                         }
                         else
                         {
-                            propertyRefs.Add(p.Key, p.Value);
+                            propertyRefs.Add(p.Key, BuildNodes(p.Value));
                         }
                     }
                     return myNode.MyLink;
@@ -227,42 +227,57 @@ namespace BassClefStudio.NET.Serialization.Graphs
             {
                 throw new ArgumentException("No Nodes exist to create an object model from.");
             }
+
+            //// TODO: Order the Nodes so that they're built in dependency order, if possible.
+
             foreach (var node in Nodes)
             {
-                var nodeType = TrustedTypes.GetMember(node.TypeName);
                 if (node is CustomValueNode customNode)
                 {
-                    var serializer = CustomSerializers.GetForType(nodeType);
-                    customNode.BasedOn = serializer.Deserialize(customNode.ValueString);
+                    if (customNode.TypeName == "null")
+                    {
+                        customNode.BasedOn = null;
+                    }
+                    else
+                    {
+                        var nodeType = TrustedTypes.GetMember(node.TypeName);
+                        var serializer = CustomSerializers.GetForType(nodeType);
+                        customNode.BasedOn = serializer.Deserialize(customNode.ValueString);
+                    }
+
+                    nodeBuilders.Add(node.MyLink, node);
                 }
                 else
                 {
+                    var nodeType = TrustedTypes.GetMember(node.TypeName);
                     try
                     {
                         var myConstructors = nodeType.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                         bool isConstructed = false;
-                        if (!(node is CollectionNode) && Behaviours.GetBehaviours(nodeType).HasFlag(GraphBehaviour.ParameterConstructor))
+                        //// Currently constructor initialization is not available.
+                        //if (!(node is CollectionNode) && Behaviours.GetBehaviours(nodeType).HasFlag(GraphBehaviour.ParameterConstructor))
+                        //{
+                        //    var availableProps = node.Properties.Where(p => IsValueType(p.Value)).ToArray();
+                        //    foreach (var c in myConstructors.OrderByDescending(c => c.GetParameters().Length))
+                        //    {
+                        //        var ps = c.GetParameters();
+                        //        if (ps.All(p => availableProps.Any(prop =>
+                        //            p.ParameterType.IsAssignableFrom(prop.GetType())
+                        //            && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase))))
+                        //        {
+                        //            var parameters = ps.Select(p => availableProps.FirstOrDefault(prop =>
+                        //                p.ParameterType.IsAssignableFrom(prop.GetType())
+                        //                && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase)));
+                        //            remainingProperties.Add(node.MyLink, node.Properties.Except(parameters).ToDictionary());
+                        //            node.BasedOn = c.Invoke(parameters.Select(prop => prop.Value).ToArray());
+                        //            isConstructed = true;
+                        //        }
+                        //    }
+                        //}
+                        //else
+                        if (node is CollectionNode arrayNode && nodeType.IsArray)
                         {
-                            var availableProps = node.Properties.Where(p => IsValueType(p.Value)).ToArray();
-                            foreach (var c in myConstructors.OrderByDescending(c => c.GetParameters().Length))
-                            {
-                                var ps = c.GetParameters();
-                                if (ps.All(p => availableProps.Any(prop =>
-                                    p.ParameterType.IsAssignableFrom(prop.GetType())
-                                    && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase))))
-                                {
-                                    var parameters = ps.Select(p => availableProps.FirstOrDefault(prop =>
-                                        p.ParameterType.IsAssignableFrom(prop.GetType())
-                                        && p.Name.Equals(prop.Key, StringComparison.OrdinalIgnoreCase)));
-                                    remainingProperties.Add(node.MyLink, node.Properties.Except(parameters).ToDictionary());
-                                    node.BasedOn = c.Invoke(parameters.Select(prop => prop.Value).ToArray());
-                                    isConstructed = true;
-                                }
-                            }
-                        }
-                        else if (node is CollectionNode collectionNode && nodeType.IsArray)
-                        {
-                            int length = collectionNode.Children.Count;
+                            int length = arrayNode.Children.Count;
                             var arrayConst = nodeType.GetConstructor(new[] { typeof(int) });
                             if (arrayConst != null)
                             {
@@ -271,7 +286,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
                             }
                             else
                             {
-                                throw new GraphException($"Could not create new instance of array {collectionNode.MyLink} - no valid array constructor found.");
+                                throw new GraphException($"Could not create new instance of array {arrayNode.MyLink} - no valid array constructor found.");
                             }
                         }
                         else
@@ -295,27 +310,29 @@ namespace BassClefStudio.NET.Serialization.Graphs
                     {
                         throw new GraphException($"Failed to create instance of object {nodeType.FullName} [{node.MyLink}].", ex);
                     }
-                }
 
-                if (node.BasedOn == null)
-                {
-                    throw new GraphException($"Attempted to construct object of type {nodeType.FullName} [{node.MyLink}], but constructor method returned null.");
-                }
-                else
-                {
-                    nodeBuilders.Add(node.MyLink, node);
+                    if (node.BasedOn == null)
+                    {
+                        throw new GraphException($"Attempted to construct object of type {nodeType.FullName} [{node.MyLink}], but constructor method returned null.");
+                    }
+                    else
+                    {
+                        nodeBuilders.Add(node.MyLink, node);
+                    }
                 }
             }
+
             //// Now we have a Dictionary with Node objects (and their constructed .NET objects), we can set all properties on the objects.
             foreach (var node in nodeBuilders.Values)
             {
-                var type = TrustedTypes.GetMember(node.BasedOn);
                 if(node is CustomValueNode customNode)
                 {
                     //// Custom values are already deserialized as they were handled by ICustomSerializers.
                 }
                 else if (node is CollectionNode collectionNode)
                 {
+                    var type = TrustedTypes.GetMember(node.BasedOn);
+
                     //// Collection initialization
                     if (collectionNode.BasedOn is Array array)
                     {
@@ -354,6 +371,8 @@ namespace BassClefStudio.NET.Serialization.Graphs
                 }
                 else
                 {
+                    var type = TrustedTypes.GetMember(node.BasedOn);
+
                     //// Object initialization
                     var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
                     var fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
@@ -439,20 +458,6 @@ namespace BassClefStudio.NET.Serialization.Graphs
 
         #endregion
         #region Types
-
-        private bool IsRefType(object o)
-        {
-            return o != null
-                && (TrustedTypes.IsMember(o.GetType())
-                || (!(o is string) && o.GetType().IsClass));
-        }
-
-        private bool IsValueType(object o)
-        {
-            return o == null
-                || o is string
-                || !(o.GetType().IsClass);
-        }
 
         private object GetObject(object o, Type desiredType)
         {

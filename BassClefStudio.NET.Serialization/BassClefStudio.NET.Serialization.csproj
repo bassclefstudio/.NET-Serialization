@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BassClefStudio.NET.Core" Version="1.5.4" />
-    <PackageReference Include="JsonKnownTypes" Version="0.5.3" />
+    <PackageReference Include="BassClefStudio.NET.Core" Version="2.0.0" />
+    <PackageReference Include="JsonKnownTypes" Version="0.5.4" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
   </ItemGroup>
