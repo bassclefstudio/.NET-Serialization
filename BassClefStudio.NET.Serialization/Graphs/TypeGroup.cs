@@ -113,7 +113,7 @@ namespace BassClefStudio.NET.Serialization.Graphs
                 return true;
             }
 
-            var trustedTypes = KnownAssemblies.SelectMany(a => a.GetTypes()).Concat(KnownTypes);
+            var trustedTypes = KnownAssemblies.SelectMany(a => a.GetTypes()).Concat(KnownTypes).Distinct();
             if (type.IsGenericType && trustedTypes.Contains(type.GetGenericTypeDefinition()))
             {
                 return true;
