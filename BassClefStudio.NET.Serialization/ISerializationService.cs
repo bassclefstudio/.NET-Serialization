@@ -1,5 +1,7 @@
-﻿using BassClefStudio.NET.Serialization.Graphs;
-using Newtonsoft.Json;
+﻿using BassClefStudio.NET.Core.Structures;
+using BassClefStudio.NET.Serialization.Model;
+using BassClefStudio.NET.Serialization.Services;
+using BassClefStudio.NET.Serialization.Types;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -7,67 +9,44 @@ using System.Text;
 namespace BassClefStudio.NET.Serialization
 {
     /// <summary>
-    /// An interface that abstracts the methods required to serialize and deserialize data from a <see cref="Graphs.Graph"/> or similar.
+    /// Represents a service that uses <see cref="Graph{TNode, TConnection}"/>-based data structures to (de)serialize polymophic and connected data, and <see cref="IGraphService"/>s to extend its functionality.
     /// </summary>
     public interface ISerializationService
     {
         /// <summary>
-        /// The <see cref="Graphs.Graph"/> that is built to handle the object references when serializing or deserializing objects.
+        /// A collection of <see cref="IGraphService"/>s that provide object property management, property injection, and construction for the <see cref="ISerializationService"/>, in order of priority.
         /// </summary>
-        Graph Graph { get; }
+        List<IGraphService> Services { get; }
 
         /// <summary>
-        /// Adds a given specific <see cref="GraphBehaviourInfo"/> to the underlying <see cref="Graph"/>.
+        /// The <see cref="IGraphWriter"/> for serializing generated <see cref="Graph{TNode, TConnection}"/>s.
         /// </summary>
-        /// <param name="behaviourInfo">The <see cref="GraphBehaviourInfo"/> behaviour.</param>
-        void AddBehaviour(GraphBehaviourInfo behaviourInfo);
+        IGraphWriter GraphWriter { get; set; }
 
         /// <summary>
-        /// Adds a custom <see cref="ICustomSerializer"/> serializer to the <see cref="SerializationService"/>.
+        /// An <see cref="ITypeMatch"/> expression that resolves any types that can be included in the serialized output without additional dependency management (e.g. <see cref="string"/>).
         /// </summary>
-        /// <param name="customSerializer">The <see cref="ICustomSerializer"/>s to add to the <see cref="SerializationService"/>'s <see cref="Graph"/>.</param>
-        void AddCustomSerializer(ICustomSerializer customSerializer);
+        ITypeMatch NativeType { get; set; }
 
         /// <summary>
-        /// Adds a collection of custom <see cref="ICustomSerializer"/> serializers to the <see cref="SerializationService"/>.
+        /// An <see cref="ITypeMatch"/> expression that matches against all trusted <see cref="Type"/>s.
         /// </summary>
-        /// <param name="customSerializers">The collection of <see cref="ICustomSerializer"/>s to add to the <see cref="SerializationService"/>'s <see cref="Graph"/>.</param>
-        void AddCustomSerializers(IEnumerable<ICustomSerializer> customSerializers);
+        ITypeMatch TrustedTypes { get; set; }
 
         /// <summary>
-        /// Builds a <see cref="Graphs.Graph"/> for the desired <see cref="object"/> (and its property graph) and serializes it to a JSON string.
+        /// Serializes a given <typeparamref name="T"/> object to text.
         /// </summary>
-        /// <param name="objectGraph">The parent <see cref="object"/> to serialize.</param>
-        /// <param name="formatting">A <see cref="Formatting"/> enum indicating how the output should be styled.</param>
-        string Serialize(object objectGraph, Formatting formatting = Formatting.None);
+        /// <typeparam name="T">The type of object to serialize.</typeparam>
+        /// <param name="value">The value to serialize.</param>
+        /// <returns>Some <see cref="string"/> serialized text representing the <paramref name="value"/>.</returns>
+        string Serialize<T>(T value);
 
         /// <summary>
-        /// Deserializes a collection of <see cref="Node"/>s from JSON and builds the resulting object model.
+        /// Deserializes some text to a <typeparamref name="T"/> object.
         /// </summary>
-        /// <param name="json">The <see cref="string"/> JSON content.</param>
-        /// <returns>The parent <see cref="object"/>, as type <typeparamref name="T"/>.</returns>
-        T Deserialize<T>(string json);
-
-        /// <summary>
-        /// Checks whether this <see cref="ISerializationService"/> supports the serialization of the given type.
-        /// </summary>
-        /// <param name="type">The desired <see cref="Type"/> type of the object you wish to serialize.</param>
-        /// <returns>A <see cref="bool"/> indicating whether this type can be serialized using this <see cref="ISerializationService"/>'s <see cref="Graph"/> and any other capabailities.</returns>
-        bool IsSerializable(Type type);
-    }
-
-    /// <summary>
-    /// Provides extension methods for the 
-    /// </summary>
-    public static class SerializationServiceExtensions
-    {
-        /// <summary>
-        /// Checks whether this <see cref="ISerializationService"/> supports the serialization of the given type.
-        /// </summary>
-        /// <typeparam name="T">The desired type of the object you wish to serialize.</typeparam>
-        /// <param name="service">The <see cref="ISerializationService"/> to query.</param>
-        /// <returns>A <see cref="bool"/> indicating whether this type can be serialized using this <see cref="ISerializationService"/>'s <see cref="Graph"/> and any other capabailities.</returns>
-        public static bool IsSerializable<T>(this ISerializationService service)
-            => service.IsSerializable(typeof(T));
+        /// <typeparam name="T">The type of object the serialized <paramref name="text"/> represents.</typeparam>
+        /// <param name="text">The serialized text.</param>
+        /// <returns>A <typeparamref name="T"/> object.</returns>
+        T Deserialize<T>(string text);
     }
 }
