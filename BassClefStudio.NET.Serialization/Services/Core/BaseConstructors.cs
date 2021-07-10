@@ -54,7 +54,7 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             if (constructor == null)
             {
                 built = null;
-                usedKeys = null;
+                usedKeys = Array.Empty<string>();
                 return false;
             }
             else

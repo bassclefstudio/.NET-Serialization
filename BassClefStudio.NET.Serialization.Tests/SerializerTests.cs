@@ -41,24 +41,6 @@ namespace BassClefStudio.NET.Serialization.Tests
         }
 
         [TestMethod]
-        public void TestUntrustedIn()
-        {
-            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
-
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly));
-            Assert.ThrowsException<TypeMatchException>(() => serializer.Deserialize<Base>(json));
-        }
-
-        [TestMethod]
-        public void TestUntrustedInConst()
-        {
-            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
-
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Type(typeof(Base)));
-            Assert.ThrowsException<TypeMatchException>(() => serializer.Deserialize<Base>(json));
-        }
-
-        [TestMethod]
         public void TestCollection()
         {
             Base a = new Base();

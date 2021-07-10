@@ -1,5 +1,7 @@
 ﻿using BassClefStudio.NET.Core;
+using BassClefStudio.NET.Core.Primitives;
 using BassClefStudio.NET.Core.Structures;
+using BassClefStudio.NET.Serialization.BaseTypes;
 using BassClefStudio.NET.Serialization.Model;
 using BassClefStudio.NET.Serialization.Services;
 using BassClefStudio.NET.Serialization.Services.Core;
@@ -9,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 
 namespace BassClefStudio.NET.Serialization
@@ -72,15 +75,35 @@ namespace BassClefStudio.NET.Serialization
                 new GraphDefaultConstructor(),
                 new ReflectionGraphProperty(),
                 new CollectionPropertyProvider(),
-                new ListPropertyConsumer()
+                new ListPropertyConsumer(),
+                new ArrayPropertyConsumer(),
+                new ArrayConstructor(),
+                new DateTimeSerializer(),
+                new DateTimeOffsetSerializer(),
+                new DateTimeZoneSerializer(),
+                new DateTimeSpanSerializer(),
+                new ColorSerializer(),
+                new GuidSerializer(),
+                new Vector2Serializer()
             };
             TrustedTypes = trustedTypes.Concat(
                 TypeMatch.Type(
-                    typeof(List<>)));
+                    typeof(List<>),
+                    typeof(DateTime),
+                    typeof(DateTimeOffset),
+                    typeof(DateTimeZone),
+                    typeof(DateTimeSpan),
+                    typeof(Color),
+                    typeof(Guid),
+                    typeof(Vector2)));
             GraphWriter = new JsonGraphWriter();
             NativeType = TypeMatch.Type(
                 typeof(string),
+                typeof(byte),
+                typeof(uint),
                 typeof(int),
+                typeof(ulong),
+                typeof(long),
                 typeof(float),
                 typeof(double),
                 typeof(bool));

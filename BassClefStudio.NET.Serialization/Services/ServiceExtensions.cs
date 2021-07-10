@@ -67,7 +67,7 @@ namespace BassClefStudio.NET.Serialization.Services
         /// </summary>
         /// <param name="constructors">An ordered collection of available <see cref="IGraphConstructor"/>s.</param>
         /// <param name="desiredType">The <see cref="Type"/> of the object to construct.</param>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys. This may be less complete due to dependencies than the graph provided to <see cref="IGraphSerializeHelper.PopulateObject(object, IDictionary{string, object})"/> or <see cref="ISerializable.PopulateObject(IDictionary{string, object})"/>.</param>        /// <param name="subGraph"></param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys. This may be less complete due to dependencies than the graph provided to <see cref="IPropertyConsumer.PopulateObject(object, IDictionary{string, object})"/> or <see cref="ISerializable.PopulateObject(IDictionary{string, object})"/>.</param>        /// <param name="subGraph"></param>
         /// <param name="usedKeys">An optionally output collection of <see cref="string"/> keys from the <paramref name="subGraph"/> that were applied during construction.</param>
         /// <returns>The newly-constructed <see cref="object"/>.</returns>
         public static object Construct(this IEnumerable<IGraphConstructor> constructors, Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)

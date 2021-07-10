@@ -52,7 +52,7 @@ namespace BassClefStudio.NET.Serialization.Services
         /// Attempts to construct/initialize a <paramref name="desiredType"/> <see cref="object"/>.
         /// </summary>
         /// <param name="desiredType">The <see cref="Type"/> of the object to construct.</param>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys. This may be less complete due to dependencies than the graph provided to <see cref="IGraphSerializeHelper.PopulateObject(object, IDictionary{string, object})"/> or <see cref="ISerializable.PopulateObject(IDictionary{string, object})"/>.</param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys. This may be less complete due to dependencies than the graph provided to <see cref="IPropertyConsumer.PopulateObject(object, IDictionary{string, object})"/> or <see cref="ISerializable.PopulateObject(IDictionary{string, object})"/>.</param>
         /// <param name="built">If successful, the newly-constructed <see cref="object"/>.</param>
         /// <param name="usedKeys">An optionally output collection of <see cref="string"/> keys from the <paramref name="subGraph"/> that were applied during construction.</param>
         /// <returns>A <see cref="bool"/> indicating whether the operation succeeded.</returns>
