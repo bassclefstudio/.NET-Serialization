@@ -182,70 +182,76 @@ namespace BassClefStudio.NET.Serialization
         {
             if (!constructed.Contains(startNode))
             {
-                if (startNode.IsNative)
+                try
                 {
-                    //// Test only against native trusted types.
-                    if (startNode.DesiredType != null
-                        && !TypeConfiguration.MatchNative().Match(startNode.DesiredType))
+                    if (startNode.IsNative)
                     {
-                        throw new TypeMatchException(TypeConfiguration.MatchNative(), startNode.DesiredType?.GetType());
-                    }
-
-                    if(startNode.Value is JToken token)
-                    {
-                        if (token.Type == JTokenType.Null)
+                        //// Test only against native trusted types.
+                        if (startNode.DesiredType != null
+                            && !TypeConfiguration.MatchNative().Match(startNode.DesiredType))
                         {
-                            startNode.Value = null;
+                            throw new TypeMatchException(TypeConfiguration.MatchNative(), startNode.DesiredType?.GetType());
+                        }
+
+                        if (startNode.Value is JToken token)
+                        {
+                            if (token.Type == JTokenType.Null)
+                            {
+                                startNode.Value = null;
+                            }
+                            else
+                            {
+                                startNode.Value = token.ToObject(startNode.DesiredType);
+                            }
+                            constructed.Add(startNode);
                         }
                         else
                         {
-                            startNode.Value = token.ToObject(startNode.DesiredType);
+                            throw new SerializationException("Native object not encapsulated in expected JToken value.");
                         }
-                        constructed.Add(startNode);
                     }
                     else
                     {
-                        throw new SerializationException("Native object not encapsulated in expected JToken value.");
+                        //// Test only against non-native trusted types.
+                        if (!TypeConfiguration.MatchTrusted().Match(startNode.DesiredType))
+                        {
+                            throw new TypeMatchException(TypeConfiguration.MatchTrusted(), startNode.DesiredType?.GetType());
+                        }
+
+                        //// Get all dependencies.
+                        var dependencies = CurrentGraph.GetConnections(startNode);
+                        dependencyMap.Add(startNode, new List<SerializeDependency>(dependencies));
+
+                        //// Construct an object with non-circular dependencies.
+                        object newValue = Constructors.Construct(
+                            startNode.DesiredType,
+                            dependencies
+                                .Where(d => !IsCircular(d))
+                                .ToDictionary(
+                                    d => d.DependencyId,
+                                    d =>
+                                    {
+                                        Construct(d.EndNode);
+                                        Populate(d.EndNode);
+                                        return d.EndNode.Value;
+                                    }),
+                            out var usedKeys);
+                        dependencyMap[startNode].RemoveRange(
+                            dependencyMap[startNode].ToArray()
+                            .Where(d => usedKeys.Contains(d.DependencyId)));
+                        startNode.Value = newValue;
+                        constructed.Add(startNode);
+
+                        foreach (var dep in dependencyMap[startNode])
+                        {
+                            Construct(dep.EndNode);
+                        }
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    //// Test only against non-native trusted types.
-                    if (!TypeConfiguration.MatchTrusted().Match(startNode.DesiredType))
-                    {
-                        throw new TypeMatchException(TypeConfiguration.MatchTrusted(), startNode.DesiredType?.GetType());
-                    }
-
-                    //// Get all dependencies.
-                    var dependencies = CurrentGraph.GetConnections(startNode);
-                    dependencyMap.Add(startNode, new List<SerializeDependency>(dependencies));
-
-                    //// Construct an object with non-circular dependencies.
-                    object newValue = Constructors.Construct(
-                        startNode.DesiredType,
-                        dependencies
-                            .Where(d => !IsCircular(d))
-                            .ToDictionary(
-                                d => d.DependencyId,
-                                d =>
-                                {
-                                    Construct(d.EndNode);
-                                    Populate(d.EndNode);
-                                    return d.EndNode.Value;
-                                }),
-                        out var usedKeys);
-                    dependencyMap[startNode].RemoveRange(
-                        dependencyMap[startNode].ToArray()
-                        .Where(d => usedKeys.Contains(d.DependencyId)));
-                    startNode.Value = newValue;
-                    constructed.Add(startNode);
-
-                    foreach (var dep in dependencyMap[startNode])
-                    {
-                        Construct(dep.EndNode);
-                    }
+                    throw new SerializationException($"Constructing {GetPath(startNode)} failed.", ex);
                 }
-                
             }
         }
 
@@ -257,21 +263,28 @@ namespace BassClefStudio.NET.Serialization
         {
             if (!populating.Contains(startNode))
             {
-                populating.Add(startNode);
-                if (dependencyMap.ContainsKey(startNode)
-                && dependencyMap[startNode].Any())
+                try
                 {
-                    foreach (var dep in dependencyMap[startNode])
+                    populating.Add(startNode);
+                    if (dependencyMap.ContainsKey(startNode)
+                    && dependencyMap[startNode].Any())
                     {
-                        Populate(dep.EndNode);
+                        foreach (var dep in dependencyMap[startNode])
+                        {
+                            Populate(dep.EndNode);
+                        }
+
+                        //// Populate all remaining dependencies.
+                        Consumers.PopulateObject(
+                            startNode.Value,
+                            dependencyMap[startNode].ToDictionary(d => d.DependencyId, d => d.EndNode.Value));
+
+                        dependencyMap[startNode].Clear();
                     }
-
-                    //// Populate all remaining dependencies.
-                    Consumers.PopulateObject(
-                        startNode.Value,
-                        dependencyMap[startNode].ToDictionary(d => d.DependencyId, d => d.EndNode.Value));
-
-                    dependencyMap[startNode].Clear();
+                }
+                catch (Exception ex)
+                {
+                    throw new SerializationException($"Populating {GetPath(startNode)} failed.", ex);
                 }
             }
         }
@@ -285,6 +298,12 @@ namespace BassClefStudio.NET.Serialization
         {
             var attemptPath = CurrentGraph.FindPath(dependency.EndNode, dependency.StartNode);
             return attemptPath != null;
+        }
+
+        private string GetPath(SerializeNode node)
+        {
+            var path = CurrentGraph.FindPath(CurrentGraph.Nodes[0], node);
+            return $"{{Root}}.{string.Join(".", path.Connections.Select(c => c.DependencyId))}";
         }
 
         #endregion
