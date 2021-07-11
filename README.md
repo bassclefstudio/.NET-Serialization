@@ -9,6 +9,26 @@ The default services provide:
  - Primitive type serializers for `string`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `bool`, `DateTime`, `Guid`, and `Vector2`, as well as the [BassClefStudio.NET](https://github.com/bassclefstudio/.NET-Libraries) primitives `DateTimeZone`, `DateTimeRange`, and `Color`.
  - `IgnoreSerialize` attribute for ignoring properties and fields while serializing.
  - Output `IGraphWriter` implementation for JSON.
- - Dependency injection support with Autofac (optional) with methods like `RegisterGraphSerializer()`, `RegisterDefaultGraphSerializer()` `RegisterGraphService()`, and `RegisterGraphConfiguration()`.
+ - Dependency injection support with Autofac (optional) with methods like `RegisterGraphSerializer()`, `RegisterDefaultGraphServices()` `RegisterGraphService<T>()`, and `RegisterGraphConfiguration()`.
 
 The core `GraphSerializer` also provides native support for **circular references**, **generic types**, **trusted types** (for polymorphism), and **reference preservation** through the use of IDs for objects and a full digraph framework for managing relationships between objects in the model.
+
+## Usage
+````C#
+
+builder.RegisterGraphSerializer();
+builder.RegisterDefaultGraphServices();
+builder.RegisterGraphConfiguration(
+    new CustomTypeConfiguration()
+    {
+        TrustedTypes = ...
+    });
+builder.RegisterGraphService<MyCustomSerializer>();
+
+...
+
+ISerializationService service;
+string json = service.Serialize(oldObject);
+MyObject newObject = service.Deserialize<MyObject>(json);
+
+````
