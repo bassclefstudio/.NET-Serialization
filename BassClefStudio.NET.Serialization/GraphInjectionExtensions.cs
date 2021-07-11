@@ -47,6 +47,17 @@ namespace BassClefStudio.NET.Serialization
         }
 
         /// <summary>
+        /// Registers the given type of <see cref="IGraphWriter"/> to the DI configuration.
+        /// </summary>
+        /// <typeparam name="T">The type of <see cref="IGraphWriter"/> to register.</typeparam>
+        /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
+        public static void RegisterGraphWriter<T>(this ContainerBuilder builder) where T : IGraphWriter
+        {
+            builder.RegisterType<T>()
+                .AsImplementedInterfaces();
+        }
+
+        /// <summary>
         /// Registers the given type of <see cref="IGraphService"/> to the DI configuration.
         /// </summary>
         /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
