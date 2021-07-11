@@ -1,5 +1,9 @@
+using Autofac;
 using BassClefStudio.NET.Core.Primitives;
-using BassClefStudio.NET.Serialization.Graphs;
+using BassClefStudio.NET.Serialization;
+using BassClefStudio.NET.Serialization.Services;
+using BassClefStudio.NET.Serialization.Services.Core;
+using BassClefStudio.NET.Serialization.Types;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -12,6 +16,21 @@ namespace BassClefStudio.NET.Serialization.Tests
     [TestClass]
     public class SerializerTests
     {
+        public static IContainer Container { get; set; }
+        public static CustomTypeConfiguration TypeConfiguration { get; set; }
+
+        [ClassInitialize]
+        public static void Initialize(TestContext context)
+        {
+            TypeConfiguration = new CustomTypeConfiguration();
+            ContainerBuilder builder = new ContainerBuilder();
+            builder.RegisterGraphSerializer();
+            builder.RegisterDefaultGraphServices();
+            builder.RegisterGraphService<GuidSerializer>();
+            builder.RegisterGraphConfiguration(TypeConfiguration);
+            Container = builder.Build();
+        }
+
         [TestMethod]
         public void TestCircular()
         {
@@ -19,7 +38,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             Derived b = new Derived() { Child = a, Name = "Fred" };
             a.Child = b;
 
-            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -33,26 +53,9 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             Derived d = new Derived();
 
-            ISerializationService serializer = new SerializationService(typeof(Base));
-            Assert.ThrowsException<GraphTypeException>(() => serializer.Serialize(d));
-        }
-
-        [TestMethod]
-        public void TestUntrustedIn()
-        {
-            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(System.IO.File).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
-
-            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
-            Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
-        }
-
-        [TestMethod]
-        public void TestUntrustedInConst()
-        {
-            string json = $"[{{\"$type\":\"node\", \"Link\":{{\"Id\":0}}, \"TypeName\":\"{typeof(BadDerived).AssemblyQualifiedName}\", \"Properties\":{{}}}}]";
-
-            ISerializationService serializer = new SerializationService(typeof(Base));
-            Assert.ThrowsException<GraphTypeException>(() => serializer.Deserialize<Base>(json));
+            TypeConfiguration.TrustedTypes = TypeMatch.Type<Base>();
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
+            Assert.ThrowsException<TypeMatchException>(() => serializer.Serialize(d));
         }
 
         [TestMethod]
@@ -64,7 +67,29 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
-            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
+            string json = serializer.Serialize(e);
+            Console.WriteLine(json);
+            Base newE = serializer.Deserialize<Base>(json);
+            Assert.IsInstanceOfType(newE, typeof(CollectionDerived));
+            var listE = (CollectionDerived)newE;
+            Assert.IsNotNull(listE.Parents);
+            Assert.AreEqual(4, listE.Parents.Count());
+            Assert.AreEqual(listE.Child, listE.Parents.ElementAt(0));
+        }
+
+        [TestMethod]
+        public void TestConstructedCollection()
+        {
+            Base a = new Base();
+            Base b = new Base();
+            Base c = new Base();
+            Base d = new Base();
+            CollectionDerived e = new CollectionDerived() { Child = a, Parents = new HashSet<Base> { a, b, c, d } };
+
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly).Concat(TypeMatch.Type(typeof(HashSet<>)));
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -84,7 +109,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new Base[] { a, b, c, d } };
 
-            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>(); 
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -102,7 +128,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             DerivedNoConst b = new DerivedNoConst(a, "Fred");
             a.Child = b;
 
-            ISerializationService serializer = new SerializationService(typeof(SerializerTests).Assembly);
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -112,10 +139,26 @@ namespace BassClefStudio.NET.Serialization.Tests
         }
 
         [TestMethod]
+        public void TestParameterConstructor()
+        {
+            Base a = new Base();
+            BaseWithConst b = new BaseWithConst(a, "Fred");
+
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
+            string json = serializer.Serialize(b);
+            Console.WriteLine(json);
+            BaseWithConst newB = serializer.Deserialize<BaseWithConst>(json);
+            Assert.IsInstanceOfType(newB.Child, typeof(Base));
+            Assert.AreEqual(newB.Name, "Fred");
+        }
+
+        [TestMethod]
         public void ExplicitValueSerialize()
         {
             Vector2 vector = new Vector2(10, 40);
-            ISerializationService serializer = new SerializationService(GraphBehaviour.IncludeFields | GraphBehaviour.SetFields, typeof(Vector2));
+            TypeConfiguration.TrustedTypes = TypeMatch.Type<Vector2>();
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(vector);
             Console.WriteLine(json);
             Vector2 newVector = serializer.Deserialize<Vector2>(json);
@@ -127,7 +170,8 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             GuidDerived a = new GuidDerived() { Child = null, Id = Guid.NewGuid() };
             Base b = new Base() { Child = a };
-            ISerializationService serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(b);
             Console.WriteLine(json);
             Base newB = serializer.Deserialize<Base>(json);
@@ -139,7 +183,8 @@ namespace BassClefStudio.NET.Serialization.Tests
 
         private void TestValue<T>(T value)
         {
-            ISerializationService serializer = new SerializationService(new Assembly[] { typeof(SerializerTests).Assembly }, new Type[] { typeof(Guid) });
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(value);
             Console.WriteLine(json);
             T newVal = serializer.Deserialize<T>(json);
@@ -203,6 +248,17 @@ namespace BassClefStudio.NET.Serialization.Tests
         }
     }
 
+    public class BaseWithConst : Base
+    {
+        public string Name { get; }
+
+        public BaseWithConst(Base child, string name)
+        {
+            Child = child;
+            Name = name;
+        }
+    }
+
     public class BadDerived : Base
     {
         public BadDerived()
@@ -218,16 +274,30 @@ namespace BassClefStudio.NET.Serialization.Tests
 
     public class GuidSerializer : ICustomSerializer
     {
-        public TypeGroup ApplicableTypes { get; } = new TypeGroup(typeof(Guid));
-        
-        public object Deserialize(string value)
+        // <inheritdoc/>
+        public ITypeMatch SupportedTypes { get; } = TypeMatch.Type<Guid>();
+
+        // <inheritdoc/>
+        public GraphPriority Priority { get; } = GraphPriority.Custom;
+
+        /// <inheritdoc/>
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
-            return Guid.Parse(value);
+            return subGraph.ContainsKey<string>("Value");
         }
 
-        public string Serialize(object o)
+        // <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
-            return ((Guid)o).ToString("N");
+            usedKeys = new string[] { "Value" };
+            return Guid.Parse((string)subGraph["Value"]);
         }
+
+        // <inheritdoc/>
+        public IDictionary<string, object> GetProperties(object value)
+            => new Dictionary<string, object>()
+            {
+                { "Value", ((Guid)value).ToString("N") }
+            };
     }
 }
