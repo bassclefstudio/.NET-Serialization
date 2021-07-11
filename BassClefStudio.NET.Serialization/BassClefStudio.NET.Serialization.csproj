@@ -5,7 +5,7 @@
     <Authors>BassClefStudio</Authors>
     <Description>A new serialization engine that provides serialization and deserialization services for complex graphs of objects, preserving references and allowing for polymorphism of trusted types, while using JSON as the output format.</Description>
     <RepositoryUrl>https://github.com/bassclefstudio/.NET-Serialization.git</RepositoryUrl>
-    <Version>3.0.0-preview.3</Version>
+    <Version>3.0.0-preview.4</Version>
     <PackageProjectUrl>https://github.com/bassclefstudio/.NET-Serialization</PackageProjectUrl>
     <PackageId>BassClefStudio.NET.Serialization</PackageId>
     <Product>BassClefStudio.NET.Serialization</Product>
