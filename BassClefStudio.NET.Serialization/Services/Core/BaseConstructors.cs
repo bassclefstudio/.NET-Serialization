@@ -12,19 +12,10 @@ namespace BassClefStudio.NET.Serialization.Services.Core
     public class GraphNoConstructor : IGraphConstructor
     {
         /// <inheritdoc/>
-        public ITypeMatch SupportedTypes { get; }
+        public ITypeMatch SupportedTypes { get; } = TypeMatch.All();
 
         /// <inheritdoc/>
-        public GraphPriority Priority { get; }
-
-        /// <summary>
-        /// Creates a new <see cref="GraphNoConstructor"/>.
-        /// </summary>
-        public GraphNoConstructor()
-        {
-            SupportedTypes = new AllTypeMatch();
-            Priority = GraphPriority.Base;
-        }
+        public GraphPriority Priority { get; } = GraphPriority.Base;
 
         /// <inheritdoc/>
         public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph) => true;
@@ -43,19 +34,10 @@ namespace BassClefStudio.NET.Serialization.Services.Core
     public class GraphDefaultConstructor : IGraphConstructor
     {
         /// <inheritdoc/>
-        public ITypeMatch SupportedTypes { get; }
+        public ITypeMatch SupportedTypes { get; } = TypeMatch.All();
 
         /// <inheritdoc/>
-        public GraphPriority Priority { get; }
-
-        /// <summary>
-        /// Creates a new <see cref="GraphDefaultConstructor"/>.
-        /// </summary>
-        public GraphDefaultConstructor()
-        {
-            SupportedTypes = new AllTypeMatch();
-            Priority = GraphPriority.BaseReflection;
-        }
+        public GraphPriority Priority { get; } = GraphPriority.BaseReflection;
 
         /// <inheritdoc/>
         public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)

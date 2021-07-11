@@ -8,33 +8,6 @@ using System.Text;
 namespace BassClefStudio.NET.Serialization.Services.Core
 {
     /// <summary>
-    /// An <see cref="IPropertyProvider"/> that enumerates <see cref="object"/>s in a collection as key-value pairs.
-    /// </summary>
-    public class CollectionPropertyProvider : IPropertyProvider
-    {
-        /// <inheritdoc/>
-        public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<IEnumerable<object>>();
-
-        /// <inheritdoc/>
-        public GraphPriority Priority { get; } = GraphPriority.Collection;
-
-        /// <inheritdoc/>
-        public IDictionary<string, object> GetProperties(object value)
-        {
-            var enumerable = (IEnumerable<object>)value;
-            var dictionary = new Dictionary<string, object>();
-            int index = 0;
-            foreach (var item in enumerable)
-            {
-                dictionary.Add(index.ToString(), item);
-                index++;
-            }
-            dictionary.Add("count", enumerable.Count());
-            return dictionary;
-        }
-    }
-
-    /// <summary>
     /// An <see cref="IPropertyConsumer"/> that adds items to a list from a given property collection.
     /// </summary>
     public class ListPropertyConsumer : IPropertyConsumer
@@ -43,12 +16,12 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<IList>();
 
         /// <inheritdoc/>
-        public GraphPriority Priority { get; } = GraphPriority.Collection;
+        public GraphPriority Priority { get; } = GraphPriority.Primitive;
 
         /// <inheritdoc/>
         public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
-            return !desiredType.IsArray 
+            return !desiredType.IsArray
                 && subGraph.ContainsKey<int>("count")
                 && Enumerable.Range(0, subGraph["count"].As<int>())
                     .All(i => subGraph.ContainsKey(i.ToString()));
@@ -57,14 +30,13 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
-            List<string> keys = new List<string>() { "count" };
+            var indexes = Enumerable.Range(0, subGraph["count"].As<int>());
             var list = (IList)value;
-            foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
+            foreach (var index in indexes)
             {
-                keys.Add(index.ToString());
                 list.Add(subGraph[index.ToString()]);
             }
-            usedKeys = keys.AsEnumerable();
+            usedKeys = indexes.Select(i => i.ToString()).Concat(new string[] { "count" });
         }
     }
 
@@ -77,7 +49,7 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<Array>();
 
         /// <inheritdoc/>
-        public GraphPriority Priority { get; } = GraphPriority.Collection;
+        public GraphPriority Priority { get; } = GraphPriority.Primitive;
 
         /// <inheritdoc/>
         public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
@@ -105,12 +77,12 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<Array>();
 
         /// <inheritdoc/>
-        public GraphPriority Priority { get; } = GraphPriority.Collection;
+        public GraphPriority Priority { get; } = GraphPriority.Primitive;
 
         /// <inheritdoc/>
         public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
-            return desiredType.IsArray 
+            return desiredType.IsArray
                 && subGraph.ContainsKey<int>("count")
                 && Enumerable.Range(0, subGraph["count"].As<int>())
                     .All(i => subGraph.ContainsKey(i.ToString()));
@@ -119,14 +91,13 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
-            List<string> keys = new List<string>() { "count" };
+            var indexes = Enumerable.Range(0, subGraph["count"].As<int>());
             var array = (Array)value;
-            foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
+            foreach (var index in indexes)
             {
-                keys.Add(index.ToString());
                 array.SetValue(subGraph[index.ToString()], index);
             }
-            usedKeys = keys.AsEnumerable();
+            usedKeys = indexes.Select(i => i.ToString()).Concat(new string[] { "count" });
         }
     }
 }

@@ -15,7 +15,7 @@ namespace BassClefStudio.NET.Serialization
     public static class GraphInjectionExtensions
     {
         /// <summary>
-        /// Registers the <see cref="GraphSerializer"/> as the default serialization service, Combine with either custom or default <see cref="IGraphService"/>s for additional functionality.
+        /// Registers the <see cref="GraphSerializer"/> as the default serialization service, and additionally pulls in the <see cref="DefaultTypeConfiguration"/> for native type support (required). Combine with either custom or default <see cref="IGraphService"/>s for additional functionality.
         /// </summary>
         /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
         public static void RegisterGraphSerializer(this ContainerBuilder builder)
@@ -23,12 +23,19 @@ namespace BassClefStudio.NET.Serialization
             builder.RegisterType<GraphSerializer>()
                 .SingleInstance()
                 .AsImplementedInterfaces();
-
-            builder.RegisterAssemblyTypes(typeof(GraphSerializer).Assembly)
-                .AssignableTo<IGraphService>()
-                .AsImplementedInterfaces();
             builder.RegisterType<DefaultTypeConfiguration>()
                 .SingleInstance()
+                .AsImplementedInterfaces();
+        }
+
+        /// <summary>
+        /// Registers all default <see cref="IGraphService"/> and <see cref="IGraphWriter"/> services to the DI configuration.
+        /// </summary>
+        /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
+        public static void RegisterDefaultGraphServices(this ContainerBuilder builder)
+        {
+            builder.RegisterAssemblyTypes(typeof(GraphSerializer).Assembly)
+                .AssignableTo<IGraphService>()
                 .AsImplementedInterfaces();
             builder.RegisterAssemblyTypes(typeof(GraphSerializer).Assembly)
                 .AssignableTo<IGraphWriter>()
@@ -62,7 +69,7 @@ namespace BassClefStudio.NET.Serialization
         /// </summary>
         /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
         /// <param name="configuration">The <see cref="ITypeConfiguration"/> instance to add to the <see cref="ContainerBuilder"/>.</param>
-        public static void RegisterTypeConfiguration(this ContainerBuilder builder, ITypeConfiguration configuration)
+        public static void RegisterGraphConfiguration(this ContainerBuilder builder, ITypeConfiguration configuration)
         {
             builder.RegisterInstance(configuration)
                 .AsImplementedInterfaces();

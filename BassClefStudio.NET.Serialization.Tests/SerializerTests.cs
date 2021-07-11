@@ -25,9 +25,9 @@ namespace BassClefStudio.NET.Serialization.Tests
             TypeConfiguration = new CustomTypeConfiguration();
             ContainerBuilder builder = new ContainerBuilder();
             builder.RegisterGraphSerializer();
-            builder.RegisterGraphService<ReflectionGraphField>();
+            builder.RegisterDefaultGraphServices();
             builder.RegisterGraphService<GuidSerializer>();
-            builder.RegisterTypeConfiguration(TypeConfiguration);
+            builder.RegisterGraphConfiguration(TypeConfiguration);
             Container = builder.Build();
         }
 
@@ -80,6 +80,27 @@ namespace BassClefStudio.NET.Serialization.Tests
         }
 
         [TestMethod]
+        public void TestConstructedCollection()
+        {
+            Base a = new Base();
+            Base b = new Base();
+            Base c = new Base();
+            Base d = new Base();
+            CollectionDerived e = new CollectionDerived() { Child = a, Parents = new HashSet<Base> { a, b, c, d } };
+
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly).Concat(TypeMatch.Type(typeof(HashSet<>)));
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
+            string json = serializer.Serialize(e);
+            Console.WriteLine(json);
+            Base newE = serializer.Deserialize<Base>(json);
+            Assert.IsInstanceOfType(newE, typeof(CollectionDerived));
+            var listE = (CollectionDerived)newE;
+            Assert.IsNotNull(listE.Parents);
+            Assert.AreEqual(4, listE.Parents.Count());
+            Assert.AreEqual(listE.Child, listE.Parents.ElementAt(0));
+        }
+
+        [TestMethod]
         public void TestArray()
         {
             Base a = new Base();
@@ -115,6 +136,21 @@ namespace BassClefStudio.NET.Serialization.Tests
             Assert.AreEqual(newA.Child.Child, newA);
             Assert.IsInstanceOfType(newA.Child, typeof(Derived));
             Assert.AreEqual(((Derived)newA.Child).Name, "Fred");
+        }
+
+        [TestMethod]
+        public void TestParameterConstructor()
+        {
+            Base a = new Base();
+            BaseWithConst b = new BaseWithConst(a, "Fred");
+
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
+            string json = serializer.Serialize(b);
+            Console.WriteLine(json);
+            BaseWithConst newB = serializer.Deserialize<BaseWithConst>(json);
+            Assert.IsInstanceOfType(newB.Child, typeof(Base));
+            Assert.AreEqual(newB.Name, "Fred");
         }
 
         [TestMethod]
@@ -206,6 +242,17 @@ namespace BassClefStudio.NET.Serialization.Tests
     public class DerivedNoConst : Derived
     {
         public DerivedNoConst(Base child, string name)
+        {
+            Child = child;
+            Name = name;
+        }
+    }
+
+    public class BaseWithConst : Base
+    {
+        public string Name { get; }
+
+        public BaseWithConst(Base child, string name)
         {
             Child = child;
             Name = name;

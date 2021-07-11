@@ -53,9 +53,9 @@ namespace BassClefStudio.NET.Serialization.Services
         /// </summary>
         Reflection = 2,
         /// <summary>
-        /// A subset of <see cref="Custom"/> which runs at a lower priority, these <see cref="IGraphService"/>s provide support for collection/<see cref="IEnumerable{T}"/> objects.
+        /// Default or user-defined <see cref="IGraphService"/>s which are applied to broad categories of types (e.g. collections/<see cref="IEnumerable{T}"/>s).
         /// </summary>
-        Collection = 3,
+        Structure = 3,
         /// <summary>
         /// Default or user-defined <see cref="IGraphService"/>s for primitive data types.
         /// </summary>
