@@ -37,6 +37,7 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             {
                 var type = value.GetType();
                 return type.GetFields(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(f => !f.CustomAttributes.Any(a => a.AttributeType == typeof(IgnoreSerializeAttribute)))
                     .ToDictionary(p => p.Name, p => p.GetValue(value));
             }
         }

@@ -37,7 +37,9 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             {
                 var type = value.GetType();
                 return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => !p.GetIndexParameters().Any() && !p.CustomAttributes.Any(a => a.AttributeType == typeof(IgnorePropertyAttribute)))
+                    .Where(p => !p.GetIndexParameters().Any() 
+                        && p.CanRead
+                        && !p.CustomAttributes.Any(a => a.AttributeType == typeof(IgnoreSerializeAttribute)))
                     .ToDictionary(p => p.Name, p => p.GetValue(value));
             }
         }
@@ -56,7 +58,9 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             {
                 var type = value.GetType();
                 List<string> keys = new List<string>();
-                foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                foreach (var prop in type
+                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Where(p => p.CanWrite))
                 {
                     if (subGraph.ContainsKey(prop.Name))
                     {
@@ -67,18 +71,5 @@ namespace BassClefStudio.NET.Serialization.Services.Core
                 usedKeys = keys.AsEnumerable();
             }
         }
-    }
-
-    /// <summary>
-    /// An <see cref="Attribute"/> that specifies to the <see cref="ReflectionGraphProperty"/> service that this property should not be included in serialization dependencies.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Property)]
-    public class IgnorePropertyAttribute : Attribute
-    {
-        /// <summary>
-        /// Creates a new <see cref="IgnorePropertyAttribute"/>.
-        /// </summary>
-        public IgnorePropertyAttribute()
-        { }
     }
 }
