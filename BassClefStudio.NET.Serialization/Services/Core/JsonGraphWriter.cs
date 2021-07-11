@@ -3,6 +3,8 @@ using BassClefStudio.NET.Serialization.Model;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -14,8 +16,10 @@ namespace BassClefStudio.NET.Serialization.Services.Core
     /// </summary>
     public class JsonGraphWriter : IGraphWriter
     {
+        #region Read
+
         /// <inheritdoc/>
-        public Graph<SerializeNode, SerializeDependency> ReadGraph(string text)
+        public virtual Graph<SerializeNode, SerializeDependency> ReadGraph(string text)
         {
             JObject json = JObject.Parse(text);
             string[] assemblyNames = json["assemblies"].ToObject<string[]>();
@@ -96,10 +100,11 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             return new SerializeDependency(id, nodes.First(n => n.Id == startId), nodes.First(n => n.Id == endId));
         }
 
+        #endregion
         #region Write
 
         /// <inheritdoc/>
-        public string WriteGraph(Graph<SerializeNode, SerializeDependency> graph)
+        public virtual string WriteGraph(Graph<SerializeNode, SerializeDependency> graph)
         {
             List<Assembly> assemblies = new List<Assembly>(graph.Nodes.Where(n => n.DesiredType != null).Select(n => n.DesiredType.Assembly).Distinct());
             var nodes = graph.Nodes.Select(n => WriteNode(n, assemblies));
@@ -174,5 +179,52 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         }
 
         #endregion
+    }
+
+
+    /// <summary>
+    /// An <see cref="IGraphWriter"/> based on <see cref="JsonGraphWriter"/> that performs GZip compression on the (base64) <see cref="string"/> output.
+    /// </summary>
+    public class GZipJsonGraphWriter : JsonGraphWriter, IGraphWriter
+    {
+        /// <inheritdoc/>
+        public override Graph<SerializeNode, SerializeDependency> ReadGraph(string text)
+        {
+            return base.ReadGraph(Decompress(text));
+        }
+
+        /// <inheritdoc/>
+        public override string WriteGraph(Graph<SerializeNode, SerializeDependency> graph)
+        {
+            return Compress(base.WriteGraph(graph));
+        }
+
+        private string Compress(string s)
+        {
+            var bytes = Encoding.Unicode.GetBytes(s);
+            using (var msi = new MemoryStream(bytes))
+            using (var mso = new MemoryStream())
+            {
+                using (var gs = new GZipStream(mso, CompressionMode.Compress))
+                {
+                    msi.CopyTo(gs);
+                }
+                return Convert.ToBase64String(mso.ToArray());
+            }
+        }
+
+        private string Decompress(string s)
+        {
+            var bytes = Convert.FromBase64String(s);
+            using (var msi = new MemoryStream(bytes))
+            using (var mso = new MemoryStream())
+            {
+                using (var gs = new GZipStream(msi, CompressionMode.Decompress))
+                {
+                    gs.CopyTo(mso);
+                }
+                return Encoding.Unicode.GetString(mso.ToArray());
+            }
+        }
     }
 }

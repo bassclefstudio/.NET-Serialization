@@ -32,14 +32,23 @@ namespace BassClefStudio.NET.Serialization
         /// Registers all default <see cref="IGraphService"/> and <see cref="IGraphWriter"/> services to the DI configuration.
         /// </summary>
         /// <param name="builder">The <see cref="ContainerBuilder"/> DI container.</param>
-        public static void RegisterDefaultGraphServices(this ContainerBuilder builder)
+        /// <param name="useCompression">By default, <see cref="ISerializationService"/> outputs JSON <see cref="string"/>s from the default <see cref="IGraphWriter"/>s. This <see cref="bool"/> determines whether the writer using GZip compression should be used instead of plain text.</param>
+        public static void RegisterDefaultGraphServices(this ContainerBuilder builder, bool useCompression = false)
         {
             builder.RegisterAssemblyTypes(typeof(GraphSerializer).Assembly)
                 .AssignableTo<IGraphService>()
                 .AsImplementedInterfaces();
-            builder.RegisterAssemblyTypes(typeof(GraphSerializer).Assembly)
-                .AssignableTo<IGraphWriter>()
-                .AsImplementedInterfaces();
+
+            if (useCompression)
+            {
+                builder.RegisterType<GZipJsonGraphWriter>()
+                    .AsImplementedInterfaces();
+            }
+            else
+            {
+                builder.RegisterType<JsonGraphWriter>()
+                    .AsImplementedInterfaces();
+            }
         }
 
         /// <summary>
