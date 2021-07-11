@@ -24,89 +24,48 @@ namespace BassClefStudio.NET.Serialization
         #region Properties
 
         /// <inheritdoc/>
-        public List<IGraphService> Services { get; }
+        public IEnumerable<IGraphService> Services { get; }
 
         /// <summary>
         /// The collection of <see cref="IGraphConstructor"/> <see cref="Services"/>.
         /// </summary>
-        public IEnumerable<IGraphConstructor> Constructors => Services.OfType<IGraphConstructor>();
+        protected IEnumerable<IGraphConstructor> Constructors => Services.OfType<IGraphConstructor>();
 
         /// <summary>
         /// The collection of <see cref="IPropertyProvider"/> <see cref="Services"/>.
         /// </summary>
-        public IEnumerable<IPropertyProvider> Providers => Services.OfType<IPropertyProvider>();
+        protected IEnumerable<IPropertyProvider> Providers => Services.OfType<IPropertyProvider>();
 
         /// <summary>
         /// The collection of <see cref="IPropertyConsumer"/> <see cref="Services"/>.
         /// </summary>
-        public IEnumerable<IPropertyConsumer> Consumers => Services.OfType<IPropertyConsumer>();
+        protected IEnumerable<IPropertyConsumer> Consumers => Services.OfType<IPropertyConsumer>();
 
         /// <inheritdoc/>
-        public IGraphWriter GraphWriter { get; set; }
+        public IGraphWriter GraphWriter { get; }
 
         /// <inheritdoc/>
-        public ITypeMatch NativeType { get; set; }
-
-        /// <inheritdoc/>
-        public ITypeMatch TrustedTypes { get; set; }
-
-        /// <summary>
-        /// Gets an <see cref="ITypeMatch"/> for both <see cref="NativeType"/> and <see cref="TrustedTypes"/>.
-        /// </summary>
-        public ITypeMatch AllTrusted => TrustedTypes.Concat(NativeType);
+        public IEnumerable<ITypeConfiguration> TypeConfiguration { get; }
 
         /// <summary>
         /// The <see cref="Graph{TNode, TConnection}"/> structure containing the information about currently serializing objects.
         /// </summary>
-        public Graph<SerializeNode, SerializeDependency> CurrentGraph { get; private set; }
+        protected Graph<SerializeNode, SerializeDependency> CurrentGraph { get; private set; }
 
         #endregion
         #region Initialize
 
         /// <summary>
-        /// Creates a new <see cref="GraphSerializer"/> with default settings and the given <see cref="ITypeMatch"/> for trusted types.
+        /// Creates a new <see cref="GraphSerializer"/> from the given services.
         /// </summary>
-        /// <param name="trustedTypes">An <see cref="ITypeMatch"/> expression that matches against all trusted <see cref="Type"/>s.</param>
-        public GraphSerializer(ITypeMatch trustedTypes)
+        /// <param name="services">See <see cref="ISerializationService.Services"/>.</param>
+        /// <param name="configuration">See <see cref="ISerializationService.TypeConfiguration"/>.</param>
+        /// <param name="writer">See <see cref="ISerializationService.GraphWriter"/>.</param>
+        public GraphSerializer(IEnumerable<IGraphService> services, IGraphWriter writer, IEnumerable<ITypeConfiguration> configuration)
         {
-            Services = new List<IGraphService>()
-            {
-                new GraphNoConstructor(),
-                new GraphDefaultConstructor(),
-                new ReflectionGraphProperty(),
-                new CollectionPropertyProvider(),
-                new ListPropertyConsumer(),
-                new ArrayPropertyConsumer(),
-                new ArrayConstructor(),
-                new DateTimeSerializer(),
-                new DateTimeOffsetSerializer(),
-                new DateTimeZoneSerializer(),
-                new DateTimeSpanSerializer(),
-                new ColorSerializer(),
-                new GuidSerializer(),
-                new Vector2Serializer()
-            };
-            TrustedTypes = trustedTypes.Concat(
-                TypeMatch.Type(
-                    typeof(List<>),
-                    typeof(DateTime),
-                    typeof(DateTimeOffset),
-                    typeof(DateTimeZone),
-                    typeof(DateTimeSpan),
-                    typeof(Color),
-                    typeof(Guid),
-                    typeof(Vector2)));
-            GraphWriter = new JsonGraphWriter();
-            NativeType = TypeMatch.Type(
-                typeof(string),
-                typeof(byte),
-                typeof(uint),
-                typeof(int),
-                typeof(ulong),
-                typeof(long),
-                typeof(float),
-                typeof(double),
-                typeof(bool));
+            Services = services;
+            GraphWriter = writer;
+            TypeConfiguration = configuration;
         }
 
         #endregion
@@ -152,9 +111,9 @@ namespace BassClefStudio.NET.Serialization
         /// <returns>The created <see cref="SerializeNode"/> representing <paramref name="value"/>.</returns>
         private SerializeNode GetNode(object value)
         {
-            if(value != null && !AllTrusted.Match(value?.GetType()))
+            if(value != null && !TypeConfiguration.MatchAny().Match(value?.GetType()))
             {
-                throw new TypeMatchException(AllTrusted, value?.GetType());
+                throw new TypeMatchException(TypeConfiguration.MatchAny(), value?.GetType());
             }
 
             var existing = CurrentGraph.Nodes.FirstOrDefault(n => object.ReferenceEquals(n.Value, value));
@@ -172,7 +131,7 @@ namespace BassClefStudio.NET.Serialization
                 CurrentGraph.AddNode(node);
 
                 //// Check if dependencies need to be resolved or if the value is native/null.
-                if (value != null && !NativeType.Match(value.GetType()))
+                if (value != null && !TypeConfiguration.MatchNative().Match(value.GetType()))
                 {
                     //// Get all of the dependencies as connections (unique for each individual node, so can construct them here).
                     var dependencies = Providers.GetDependencies(value)
@@ -227,9 +186,9 @@ namespace BassClefStudio.NET.Serialization
                 {
                     //// Test only against native trusted types.
                     if (startNode.DesiredType != null
-                        && !NativeType.Match(startNode.DesiredType))
+                        && !TypeConfiguration.MatchNative().Match(startNode.DesiredType))
                     {
-                        throw new TypeMatchException(NativeType, startNode.DesiredType?.GetType());
+                        throw new TypeMatchException(TypeConfiguration.MatchNative(), startNode.DesiredType?.GetType());
                     }
 
                     if(startNode.Value is JToken token)
@@ -252,9 +211,9 @@ namespace BassClefStudio.NET.Serialization
                 else
                 {
                     //// Test only against non-native trusted types.
-                    if (!TrustedTypes.Match(startNode.DesiredType))
+                    if (!TypeConfiguration.MatchTrusted().Match(startNode.DesiredType))
                     {
-                        throw new TypeMatchException(TrustedTypes, startNode.DesiredType?.GetType());
+                        throw new TypeMatchException(TypeConfiguration.MatchTrusted(), startNode.DesiredType?.GetType());
                     }
 
                     //// Get all dependencies.
@@ -291,7 +250,7 @@ namespace BassClefStudio.NET.Serialization
         }
 
         /// <summary>
-        /// Populates already <see cref="Construct(SerializeNode)"/>-ed <see cref="SerializeNode"/>s using the available <see cref="Helpers"/>, from the bottom of the graph upwards.
+        /// Populates already <see cref="Construct(SerializeNode)"/>-ed <see cref="SerializeNode"/>s using the available <see cref="Consumers"/>, from the bottom of the graph upwards.
         /// </summary>
         /// <param name="startNode"></param>
         private void Populate(SerializeNode startNode)

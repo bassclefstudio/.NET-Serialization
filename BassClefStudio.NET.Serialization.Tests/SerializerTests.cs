@@ -1,3 +1,4 @@
+using Autofac;
 using BassClefStudio.NET.Core.Primitives;
 using BassClefStudio.NET.Serialization;
 using BassClefStudio.NET.Serialization.Services;
@@ -15,6 +16,21 @@ namespace BassClefStudio.NET.Serialization.Tests
     [TestClass]
     public class SerializerTests
     {
+        public static IContainer Container { get; set; }
+        public static CustomTypeConfiguration TypeConfiguration { get; set; }
+
+        [ClassInitialize]
+        public static void Initialize(TestContext context)
+        {
+            TypeConfiguration = new CustomTypeConfiguration();
+            ContainerBuilder builder = new ContainerBuilder();
+            builder.RegisterGraphSerializer();
+            builder.RegisterGraphService<ReflectionGraphField>();
+            builder.RegisterGraphService<GuidSerializer>();
+            builder.RegisterTypeConfiguration(TypeConfiguration);
+            Container = builder.Build();
+        }
+
         [TestMethod]
         public void TestCircular()
         {
@@ -22,7 +38,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             Derived b = new Derived() { Child = a, Name = "Fred" };
             a.Child = b;
 
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly));
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -36,7 +53,8 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             Derived d = new Derived();
 
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Type(typeof(Base)));
+            TypeConfiguration.TrustedTypes = TypeMatch.Type<Base>();
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             Assert.ThrowsException<TypeMatchException>(() => serializer.Serialize(d));
         }
 
@@ -49,7 +67,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new List<Base>() { a, b, c, d } };
 
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly));
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -69,7 +88,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             Base d = new Base();
             CollectionDerived e = new CollectionDerived() { Child = a, Parents = new Base[] { a, b, c, d } };
 
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly));
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>(); 
             string json = serializer.Serialize(e);
             Console.WriteLine(json);
             Base newE = serializer.Deserialize<Base>(json);
@@ -87,7 +107,8 @@ namespace BassClefStudio.NET.Serialization.Tests
             DerivedNoConst b = new DerivedNoConst(a, "Fred");
             a.Child = b;
 
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly));
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(a);
             Console.WriteLine(json);
             Base newA = serializer.Deserialize<Base>(json);
@@ -100,8 +121,8 @@ namespace BassClefStudio.NET.Serialization.Tests
         public void ExplicitValueSerialize()
         {
             Vector2 vector = new Vector2(10, 40);
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Type(typeof(Vector2)));
-            serializer.Services.Add(new ReflectionGraphField());
+            TypeConfiguration.TrustedTypes = TypeMatch.Type<Vector2>();
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(vector);
             Console.WriteLine(json);
             Vector2 newVector = serializer.Deserialize<Vector2>(json);
@@ -113,8 +134,8 @@ namespace BassClefStudio.NET.Serialization.Tests
         {
             GuidDerived a = new GuidDerived() { Child = null, Id = Guid.NewGuid() };
             Base b = new Base() { Child = a };
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly).Concat(TypeMatch.Type<Guid>()));
-            serializer.Services.Add(new GuidSerializer());
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(b);
             Console.WriteLine(json);
             Base newB = serializer.Deserialize<Base>(json);
@@ -126,7 +147,8 @@ namespace BassClefStudio.NET.Serialization.Tests
 
         private void TestValue<T>(T value)
         {
-            ISerializationService serializer = new GraphSerializer(TypeMatch.Assembly(typeof(SerializerTests).Assembly).Concat(TypeMatch.Type<Guid>()));
+            TypeConfiguration.TrustedTypes = TypeMatch.Assembly(typeof(SerializerTests).Assembly);
+            ISerializationService serializer = Container.Resolve<ISerializationService>();
             string json = serializer.Serialize(value);
             Console.WriteLine(json);
             T newVal = serializer.Deserialize<T>(json);
@@ -205,19 +227,30 @@ namespace BassClefStudio.NET.Serialization.Tests
 
     public class GuidSerializer : ICustomSerializer
     {
+        // <inheritdoc/>
         public ITypeMatch SupportedTypes { get; } = TypeMatch.Type<Guid>();
 
+        // <inheritdoc/>
+        public GraphPriority Priority { get; } = GraphPriority.Custom;
+
+        /// <inheritdoc/>
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
+        {
+            return subGraph.ContainsKey<string>("Value");
+        }
+
+        // <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            usedKeys = new string[] { "Value" };
+            return Guid.Parse((string)subGraph["Value"]);
+        }
+
+        // <inheritdoc/>
         public IDictionary<string, object> GetProperties(object value)
             => new Dictionary<string, object>()
             {
                 { "Value", ((Guid)value).ToString("N") }
             };
-
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
-        {
-            built = Guid.Parse((string)subGraph["Value"]);
-            usedKeys = new string[] { "Value" };
-            return true;
-        }
     }
 }

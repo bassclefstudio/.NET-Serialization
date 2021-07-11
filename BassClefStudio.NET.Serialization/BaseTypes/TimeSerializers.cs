@@ -12,7 +12,7 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     public class DateTimeSerializer : StringSerializer<DateTime>
     {
         /// <inheritdoc/>
-        protected override string GetValue(DateTime value) => value.ToString();
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
 
         /// <inheritdoc/>
         protected override DateTime Parse(string value) => DateTime.Parse(value);
@@ -24,7 +24,7 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     public class DateTimeOffsetSerializer : StringSerializer<DateTimeOffset>
     {
         /// <inheritdoc/>
-        protected override string GetValue(DateTimeOffset value) => value.ToString();
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
 
         /// <inheritdoc/>
         protected override DateTimeOffset Parse(string value) => DateTimeOffset.Parse(value);
@@ -35,6 +35,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     /// </summary>
     public class DateTimeZoneSerializer : CustomSerializer<DateTimeZone>
     {
+        /// <inheritdoc/>
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
+
         /// <inheritdoc/>
         protected override IDictionary<string, object> GetPropertiesInternal(DateTimeZone value)
         {
@@ -59,6 +62,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     /// </summary>
     public class DateTimeSpanSerializer : CustomSerializer<DateTimeSpan>
     {
+        /// <inheritdoc/>
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
+
         /// <inheritdoc/>
         protected override IDictionary<string, object> GetPropertiesInternal(DateTimeSpan value)
         {

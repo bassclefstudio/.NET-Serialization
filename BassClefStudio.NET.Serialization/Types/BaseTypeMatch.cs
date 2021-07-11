@@ -19,6 +19,18 @@ namespace BassClefStudio.NET.Serialization.Types
     }
 
     /// <summary>
+    /// An <see cref="ITypeMatch"/> expression that matches no <see cref="Type"/>s. A good default expression value.
+    /// </summary>
+    public class NoTypeMatch : ITypeMatch
+    {
+        /// <inheritdoc/>
+        public bool Match(Type type)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// A basic <see cref="ITypeMatch"/> expression that matches a set of given <see cref="Type"/>s.
     /// </summary>
     public class BaseTypeMatch : ITypeMatch

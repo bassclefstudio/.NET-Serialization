@@ -12,6 +12,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     public class Vector2Serializer : CustomSerializer<Vector2>
     {
         /// <inheritdoc/>
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
+
+        /// <inheritdoc/>
         protected override IDictionary<string, object> GetPropertiesInternal(Vector2 value)
         {
             return new Dictionary<string, object>()

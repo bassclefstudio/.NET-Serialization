@@ -15,6 +15,9 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
 
+        /// <inheritdoc/>
+        public GraphPriority Priority { get; } = GraphPriority.BaseReflection;
+
         /// <summary>
         /// Creates a new <see cref="ReflectionGraphField"/>.
         /// </summary>
@@ -39,7 +42,10 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         }
 
         /// <inheritdoc/>
-        public void PopulateObject(object value, IDictionary<string, object> subGraph)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph) => true;
+
+        /// <inheritdoc/>
+        public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
             if (value == null)
             {
@@ -48,13 +54,16 @@ namespace BassClefStudio.NET.Serialization.Services.Core
             else
             {
                 var type = value.GetType();
+                List<string> keys = new List<string>();
                 foreach(var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 {
                     if(subGraph.ContainsKey(field.Name))
                     {
+                        keys.Add(field.Name);
                         field.SetValue(value, subGraph[field.Name]);
                     }
                 }
+                usedKeys = keys.AsEnumerable();
             }
         }
     }

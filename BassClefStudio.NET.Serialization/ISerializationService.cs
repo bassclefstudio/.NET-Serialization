@@ -16,22 +16,17 @@ namespace BassClefStudio.NET.Serialization
         /// <summary>
         /// A collection of <see cref="IGraphService"/>s that provide object property management, property injection, and construction for the <see cref="ISerializationService"/>, in order of priority.
         /// </summary>
-        List<IGraphService> Services { get; }
+        IEnumerable<IGraphService> Services { get; }
 
         /// <summary>
         /// The <see cref="IGraphWriter"/> for serializing generated <see cref="Graph{TNode, TConnection}"/>s.
         /// </summary>
-        IGraphWriter GraphWriter { get; set; }
-
+        IGraphWriter GraphWriter { get; }
+        
         /// <summary>
-        /// An <see cref="ITypeMatch"/> expression that resolves any types that can be included in the serialized output without additional dependency management (e.g. <see cref="string"/>).
+        /// A collection of <see cref="ITypeConfiguration"/>s describing the types of objects this <see cref="ISerializationService"/> supports, and how to serialize them (native vs. managed).
         /// </summary>
-        ITypeMatch NativeType { get; set; }
-
-        /// <summary>
-        /// An <see cref="ITypeMatch"/> expression that matches against all trusted <see cref="Type"/>s.
-        /// </summary>
-        ITypeMatch TrustedTypes { get; set; }
+        IEnumerable<ITypeConfiguration> TypeConfiguration { get; }
 
         /// <summary>
         /// Serializes a given <typeparamref name="T"/> object to text.

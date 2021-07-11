@@ -14,20 +14,26 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
 
+        /// <inheritdoc/>
+        public GraphPriority Priority { get; }
+
         /// <summary>
         /// Creates a new <see cref="GraphNoConstructor"/>.
         /// </summary>
         public GraphNoConstructor()
         {
             SupportedTypes = new AllTypeMatch();
+            Priority = GraphPriority.Base;
         }
 
         /// <inheritdoc/>
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph) => true;
+
+        /// <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
             usedKeys = Array.Empty<string>();
-            built = FormatterServices.GetUninitializedObject(desiredType);
-            return true;
+            return FormatterServices.GetUninitializedObject(desiredType);
         }
     }
 
@@ -39,30 +45,32 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
 
+        /// <inheritdoc/>
+        public GraphPriority Priority { get; }
+
         /// <summary>
         /// Creates a new <see cref="GraphDefaultConstructor"/>.
         /// </summary>
         public GraphDefaultConstructor()
         {
             SupportedTypes = new AllTypeMatch();
+            Priority = GraphPriority.BaseReflection;
         }
 
         /// <inheritdoc/>
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
+            //// Attempt to get parameterless constructor.
             var constructor = desiredType.GetConstructor(Type.EmptyTypes);
-            if (constructor == null)
-            {
-                built = null;
-                usedKeys = Array.Empty<string>();
-                return false;
-            }
-            else
-            {
-                usedKeys = Array.Empty<string>();
-                built = constructor.Invoke(Array.Empty<object>());
-                return true;
-            }
+            return constructor != null;
+        }
+
+        /// <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            usedKeys = Array.Empty<string>();
+            var constructor = desiredType.GetConstructor(Type.EmptyTypes);
+            return constructor.Invoke(Array.Empty<object>());
         }
     }
 }

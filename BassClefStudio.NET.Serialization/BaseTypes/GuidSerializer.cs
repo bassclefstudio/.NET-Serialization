@@ -11,6 +11,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     public class GuidSerializer : StringSerializer<Guid>
     {
         /// <inheritdoc/>
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
+
+        /// <inheritdoc/>
         protected override string GetValue(Guid value) => value.ToString("N");
 
         /// <inheritdoc/>

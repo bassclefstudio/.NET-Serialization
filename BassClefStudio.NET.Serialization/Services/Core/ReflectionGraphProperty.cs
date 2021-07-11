@@ -15,6 +15,9 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
 
+        /// <inheritdoc/>
+        public GraphPriority Priority { get; } = GraphPriority.BaseReflection;
+
         /// <summary>
         /// Creates a new <see cref="ReflectionGraphProperty"/>.
         /// </summary>
@@ -39,22 +42,28 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         }
 
         /// <inheritdoc/>
-        public void PopulateObject(object value, IDictionary<string, object> subGraph)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph) => true;
+
+        /// <inheritdoc/>
+        public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
             if (value == null)
             {
-                throw new ArgumentException($"{nameof(ReflectionGraphProperty)} cannot handle null values.", "value");
+                throw new ArgumentException($"{nameof(ReflectionGraphField)} cannot handle null values.", "value");
             }
             else
             {
                 var type = value.GetType();
-                foreach(var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+                List<string> keys = new List<string>();
+                foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
                 {
-                    if(subGraph.ContainsKey(prop.Name))
+                    if (subGraph.ContainsKey(prop.Name))
                     {
+                        keys.Add(prop.Name);
                         prop.SetValue(value, subGraph[prop.Name]);
                     }
                 }
+                usedKeys = keys.AsEnumerable();
             }
         }
     }

@@ -12,6 +12,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     public class ColorSerializer : CustomSerializer<Color>
     {
         /// <inheritdoc/>
+        public override GraphPriority Priority { get; } = GraphPriority.Primitive;
+
+        /// <inheritdoc/>
         protected override IDictionary<string, object> GetPropertiesInternal(Color value)
         {
             return new Dictionary<string, object>()

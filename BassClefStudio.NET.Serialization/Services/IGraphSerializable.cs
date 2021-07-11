@@ -20,7 +20,7 @@ namespace BassClefStudio.NET.Serialization.Services
         /// <summary>
         /// Populates this <see cref="ISerializable"/>'s properties and other values from the given <see cref="IDictionary{TKey, TValue}"/> provided by the serializer.
         /// </summary>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
         void PopulateObject(IDictionary<string, object> subGraph);
     }
 }

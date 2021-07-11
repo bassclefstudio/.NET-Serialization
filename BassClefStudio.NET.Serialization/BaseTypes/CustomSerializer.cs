@@ -15,6 +15,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     {
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
+        
+        /// <inheritdoc/>
+        public abstract GraphPriority Priority { get; }
 
         /// <summary>
         /// Creates a new <see cref="CustomSerializer{T}"/>.
@@ -45,24 +48,30 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
         protected abstract IDictionary<string, object> GetPropertiesInternal(T value);
 
         /// <inheritdoc/>
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
             if (desiredType == typeof(T))
-            {
-                built = ConstructInternal(subGraph);
-                usedKeys = subGraph.Keys.ToArray();
+            {   
                 return true;
             }
             else
             {
-                throw new ArgumentException($"Desired type expected {typeof(T).Name}; recieved {desiredType.Name}.");
+                return false;
             }
+        }
+
+        /// <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            var built = ConstructInternal(subGraph);
+            usedKeys = subGraph.Keys.ToArray();
+            return built;
         }
 
         /// <summary>
         /// Attempts to construct/initialize a <typeparamref name="T"/> object.
         /// </summary>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys (see <see cref="IGraphConstructor.TryConstruct(Type, IDictionary{string, object}, out object, out IEnumerable{string})"/> for more information).</param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
         /// <returns>The newly-constructed <typeparamref name="T"/>.</returns>
         protected abstract T ConstructInternal(IDictionary<string, object> subGraph);
     }
@@ -75,6 +84,9 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
     {
         /// <inheritdoc/>
         public ITypeMatch SupportedTypes { get; }
+
+        /// <inheritdoc/>
+        public abstract GraphPriority Priority { get; }
 
         /// <summary>
         /// Creates a new <see cref="CustomSerializer{T}"/>.
@@ -104,21 +116,27 @@ namespace BassClefStudio.NET.Serialization.BaseTypes
         /// Gets the <see cref="string"/> serialized representation of the given value.
         /// </summary>
         /// <param name="value">The <typeparamref name="T"/> object to serialize.</param>
-        protected abstract string GetValue(T value);
+        protected virtual string GetValue(T value) => value.ToString();
 
         /// <inheritdoc/>
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
             if (desiredType == typeof(T))
             {
-                built = Parse(subGraph["Value"].As<string>());
-                usedKeys = subGraph.Keys.ToArray();
                 return true;
             }
             else
             {
-                throw new ArgumentException($"Desired type expected {typeof(T).Name}; recieved {desiredType.Name}.");
+                return false;
             }
+        }
+
+        /// <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            var built = Parse(subGraph["Value"].As<string>());
+            usedKeys = new string[] { "Value" };
+            return built;
         }
 
         /// <summary>

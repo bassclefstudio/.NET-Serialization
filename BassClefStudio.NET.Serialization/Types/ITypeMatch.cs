@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -65,5 +66,12 @@ namespace BassClefStudio.NET.Serialization.Types
         /// <param name="add">The <see cref="ITypeMatch"/> to add.</param>
         /// <returns>An <see cref="ITypeMatch"/> that matches all <see cref="System.Type"/>s that either of the component expressions match.</returns>
         public static ITypeMatch Concat(this ITypeMatch match, ITypeMatch add) => new ConcatTypeMatch(match, add);
+
+        /// <summary>
+        /// Adds a collection of <see cref="ITypeMatch"/> expressions together.
+        /// </summary>
+        /// <param name="matches">The collection of <see cref="ITypeMatch"/> expressions.</param>
+        /// <returns>An <see cref="ITypeMatch"/> that matches all <see cref="System.Type"/>s that any of the component expressions match.</returns>
+        public static ITypeMatch Concat(this IEnumerable<ITypeMatch> matches) => new ConcatTypeMatch(matches.ToArray());
     }
 }

@@ -16,6 +16,9 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<IEnumerable<object>>();
 
         /// <inheritdoc/>
+        public GraphPriority Priority { get; } = GraphPriority.Collection;
+
+        /// <inheritdoc/>
         public IDictionary<string, object> GetProperties(object value)
         {
             var enumerable = (IEnumerable<object>)value;
@@ -40,20 +43,28 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<IList>();
 
         /// <inheritdoc/>
-        public void PopulateObject(object value, IDictionary<string, object> subGraph)
+        public GraphPriority Priority { get; } = GraphPriority.Collection;
+
+        /// <inheritdoc/>
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
+            return !desiredType.IsArray 
+                && subGraph.ContainsKey<int>("count")
+                && Enumerable.Range(0, subGraph["count"].As<int>())
+                    .All(i => subGraph.ContainsKey(i.ToString()));
+        }
+
+        /// <inheritdoc/>
+        public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            List<string> keys = new List<string>() { "count" };
             var list = (IList)value;
-            if (subGraph.ContainsKey("count"))
+            foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
             {
-                foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
-                {
-                    list.Add(subGraph[index.ToString()]);
-                }
+                keys.Add(index.ToString());
+                list.Add(subGraph[index.ToString()]);
             }
-            else
-            {
-                throw new SerializationException($"Expected a \"count\" property on all collection graphs. {{{subGraph}}}");
-            }
+            usedKeys = keys.AsEnumerable();
         }
     }
 
@@ -66,22 +77,22 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<Array>();
 
         /// <inheritdoc/>
-        public bool TryConstruct(Type desiredType, IDictionary<string, object> subGraph, out object built, out IEnumerable<string> usedKeys)
+        public GraphPriority Priority { get; } = GraphPriority.Collection;
+
+        /// <inheritdoc/>
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
-            if (desiredType.IsArray && subGraph.ContainsKey("count"))
-            {
-                built = Array.CreateInstance(
-                    desiredType.GetElementType(),
-                    subGraph["count"].As<int>());
-                usedKeys = Array.Empty<string>();
-                return true;
-            }
-            else
-            {
-                built = null;
-                usedKeys = Array.Empty<string>();
-                return false;
-            }
+            return desiredType.IsArray
+                && subGraph.ContainsKey("count");
+        }
+
+        /// <inheritdoc/>
+        public object Construct(Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            usedKeys = Array.Empty<string>();
+            return Array.CreateInstance(
+                desiredType.GetElementType(),
+                subGraph["count"].As<int>());
         }
     }
 
@@ -94,20 +105,28 @@ namespace BassClefStudio.NET.Serialization.Services.Core
         public ITypeMatch SupportedTypes { get; } = TypeMatch.OfType<Array>();
 
         /// <inheritdoc/>
-        public void PopulateObject(object value, IDictionary<string, object> subGraph)
+        public GraphPriority Priority { get; } = GraphPriority.Collection;
+
+        /// <inheritdoc/>
+        public bool CanHandle(Type desiredType, IDictionary<string, object> subGraph)
         {
+            return desiredType.IsArray 
+                && subGraph.ContainsKey<int>("count")
+                && Enumerable.Range(0, subGraph["count"].As<int>())
+                    .All(i => subGraph.ContainsKey(i.ToString()));
+        }
+
+        /// <inheritdoc/>
+        public void PopulateObject(object value, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
+        {
+            List<string> keys = new List<string>() { "count" };
             var array = (Array)value;
-            if (subGraph.ContainsKey("count"))
+            foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
             {
-                foreach (var index in Enumerable.Range(0, subGraph["count"].As<int>()))
-                {
-                    array.SetValue(subGraph[index.ToString()], index);
-                }
+                keys.Add(index.ToString());
+                array.SetValue(subGraph[index.ToString()], index);
             }
-            else
-            {
-                throw new SerializationException($"Expected a \"count\" property on all collection graphs. {{{subGraph}}}");
-            }
+            usedKeys = keys.AsEnumerable();
         }
     }
 }

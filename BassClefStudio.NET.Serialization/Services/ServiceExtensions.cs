@@ -24,10 +24,14 @@ namespace BassClefStudio.NET.Serialization.Services
             }
             else
             {
-                var helper = providers.LastOrDefault(h => h.SupportedTypes.Match(item?.GetType()));
-                if (helper != null)
+                Type itemType = item?.GetType();
+                var group = providers.GroupBy(s => s.Priority).OrderByDescending(g => g.Key)
+                    .FirstOrDefault(g => g.Any(h => h.SupportedTypes.Match(itemType)));
+                if (group != null)
                 {
-                    return helper.GetProperties(item);
+                    return group.Where(h => h.SupportedTypes.Match(itemType))
+                        .SelectMany(h => h.GetProperties(item))
+                        .ToDictionary(p => p.Key, p => p.Value);
                 }
                 else
                 {
@@ -41,7 +45,7 @@ namespace BassClefStudio.NET.Serialization.Services
         /// </summary>
         /// <param name="consumers">An ordered collection of available <see cref="IPropertyConsumer"/>s.</param>
         /// <param name="item">The <see cref="object"/> to deserialize.</param>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
         public static void PopulateObject(this IEnumerable<IPropertyConsumer> consumers, object item, IDictionary<string, object> subGraph)
         {
             if (item is ISerializable serializable)
@@ -50,14 +54,26 @@ namespace BassClefStudio.NET.Serialization.Services
             }
             else
             {
-                var helper = consumers.LastOrDefault(h => h.SupportedTypes.Match(item?.GetType()));
-                if (helper != null)
+                Type itemType = item.GetType();
+                var currentValues = new Dictionary<string, object>(subGraph);
+                foreach (var consumer in consumers.Where(c => c.SupportedTypes.Match(itemType)).OrderByDescending(s => s.Priority))
                 {
-                    helper.PopulateObject(item, subGraph);
-                }
-                else
-                {
-                    throw new SerializationException($"The given object of type {item?.GetType().Name} had no available serialization helpers.");
+                    if (consumer.CanHandle(itemType, subGraph))
+                    {
+                        consumer.PopulateObject(item, currentValues, out var keys);
+                        if(keys != null)
+                        {
+                            foreach (var k in keys)
+                            {
+                                currentValues.Remove(k);
+                            }
+
+                            if(!currentValues.Any())
+                            {
+                                return;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -67,16 +83,16 @@ namespace BassClefStudio.NET.Serialization.Services
         /// </summary>
         /// <param name="constructors">An ordered collection of available <see cref="IGraphConstructor"/>s.</param>
         /// <param name="desiredType">The <see cref="Type"/> of the object to construct.</param>
-        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys. This may be less complete due to dependencies than the graph provided to <see cref="IPropertyConsumer.PopulateObject(object, IDictionary{string, object})"/> or <see cref="ISerializable.PopulateObject(IDictionary{string, object})"/>.</param>        /// <param name="subGraph"></param>
+        /// <param name="subGraph">The <see cref="IDictionary{TKey, TValue}"/> containing the currently defined <see cref="object"/> values under their <see cref="string"/> keys.</param>
         /// <param name="usedKeys">An optionally output collection of <see cref="string"/> keys from the <paramref name="subGraph"/> that were applied during construction.</param>
         /// <returns>The newly-constructed <see cref="object"/>.</returns>
         public static object Construct(this IEnumerable<IGraphConstructor> constructors, Type desiredType, IDictionary<string, object> subGraph, out IEnumerable<string> usedKeys)
         {
-            foreach (var constructor in constructors.Where(c => c.SupportedTypes.Match(desiredType)).Reverse())
+            foreach (var constructor in constructors.Where(c => c.SupportedTypes.Match(desiredType)).OrderByDescending(s => s.Priority))
             {
-                if (constructor.TryConstruct(desiredType, subGraph, out var built, out var keys))
+                if (constructor.CanHandle(desiredType, subGraph))
                 {
-                    usedKeys = keys;
+                    var built = constructor.Construct(desiredType, subGraph, out usedKeys);
                     return built;
                 }
             }
@@ -100,6 +116,25 @@ namespace BassClefStudio.NET.Serialization.Services
             {
                 var convert = Convert.ChangeType(value, typeof(T));
                 return (T)convert;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a given key is present in an <see cref="IDictionary{TKey, TValue}"/> with a value of the specified type. 
+        /// </summary>
+        /// <typeparam name="T">A (usually concrete) type to cast the <see cref="object"/> as.</typeparam>
+        /// <param name="dictionary">The <see cref="IDictionary{TKey, TValue}"/> to query.</param>
+        /// <param name="key">The <see cref="string"/> key to check for.</param>
+        /// <returns>A <see cref="bool"/> indicating whether a <typeparamref name="T"/> value is present at the given <paramref name="key"/>.</returns>
+        public static bool ContainsKey<T>(this IDictionary<string, object> dictionary, string key)
+        {
+            if(dictionary.ContainsKey(key))
+            {
+                return dictionary[key] is T;
+            }
+            else
+            {
+                return false;
             }
         }
     }
